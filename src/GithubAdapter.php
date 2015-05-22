@@ -2,6 +2,7 @@
 
 namespace Potherca\Flysystem\Github;
 
+use Github\Api\GitData;
 use Github\Api\Repo;
 use Github\Client;
 use League\Flysystem\Adapter\AbstractAdapter;
@@ -9,11 +10,25 @@ use League\Flysystem\Config;
 
 class GithubAdapter extends AbstractAdapter
 {
+    const KEY_BLOB = 'blob';
+    const KEY_CONTENTS = 'contents';
+    const KEY_DIRECTORY = 'dir';
+    const KEY_FILE = 'file';
+    const KEY_GIT_DATA = 'git';
+    const KEY_REPO = 'repo';
+    const KEY_STREAM = 'stream';
+    const KEY_TIMESTAMP = 'timestamp';
+    const KEY_TREE = 'tree';
+    const KEY_TYPE = 'type';
+    const KEY_VISIBILITY = 'visibility';
+
     const BRANCH_MASTER = 'master';
 
     const COMMITTER_MAIL = 'email';
     const COMMITTER_NAME = 'name';
 
+    const VISIBILITY_PRIVATE = 'private';
+    const VISIBILITY_PUBLIC = 'public';
 
     /** @var Client */
     protected $client;
@@ -30,6 +45,7 @@ class GithubAdapter extends AbstractAdapter
         self::COMMITTER_NAME => null,
         self::COMMITTER_MAIL => null,
     );
+    private $visibility;
 
     /**
      * Constructor.
@@ -44,6 +60,8 @@ class GithubAdapter extends AbstractAdapter
         $this->client = $client;
         $this->repository = $settings->repository;
         $this->reference = $settings->reference;
+
+        list($this->vendor, $this->package) = explode('/', $this->repository);
 
         //@TODO: If $client contains credentials, $settings MUST contains author info!
     }
@@ -275,8 +293,15 @@ class GithubAdapter extends AbstractAdapter
      */
     public function listContents($directory = '', $recursive = false)
     {
-        $directoryInfo = $this->getMetadata($directory);
-        // @TODO: Read file names from $directoryInfo
+        if ($recursive === true) {
+            $info = $this->getTree($recursive);
+            $result = $this->normalizeTree($info);
+        } else {
+            $metadata = $this->getMetadata($directory);
+            $result = $this->normalizeMetaData($metadata);
+        }
+
+        return $result;
     }
 
     /**
@@ -354,7 +379,20 @@ class GithubAdapter extends AbstractAdapter
      */
     public function getVisibility($path)
     {
-        // TODO: Implement getVisibility() method.
+        if ($this->visibility === null) {
+            $repo = $this->getRepository()->show(
+                $this->vendor,
+                $this->package
+            );
+
+            if ($repo[self::VISIBILITY_PRIVATE] === true) {
+                $this->visibility = self::VISIBILITY_PRIVATE;
+            } else {
+                $this->visibility = self::VISIBILITY_PUBLIC;
+            }
+        }
+
+        return $this->visibility;
     }
 
     /**
@@ -411,6 +449,77 @@ class GithubAdapter extends AbstractAdapter
      */
     private function getRepository()
     {
-        return $this->client->api('repo');
+        return $this->client->api(self::KEY_REPO);
+    }
+
+    /**
+     * @return GitData
+     */
+    private function getGitData()
+    {
+        return $this->client->api(self::KEY_GIT_DATA);
+    }
+
+    /**
+     * @param $recursive
+     * @return \Guzzle\Http\EntityBodyInterface|mixed|string
+     */
+    private function getTree($recursive)
+    {
+        $trees = $this->getGitData()->trees();
+
+        $info = $trees->show(
+            $this->vendor,
+            $this->package,
+            $this->reference,
+            $recursive
+        );
+
+        return $info[self::KEY_TREE];
+    }
+
+    /**
+     * @param $info
+     * @return array
+     */
+    private function normalizeMetaData($info)
+    {
+        $result = [];
+
+        foreach ($info as $entry) {
+            $entry[self::KEY_CONTENTS] = false;
+            $entry[self::KEY_STREAM] = false;
+            $entry[self::KEY_TIMESTAMP] = false;
+            $entry[self::KEY_VISIBILITY] = $this->getVisibility(null);
+            $result[] = $entry;
+        }
+
+        return $result;
+    }
+
+    private function normalizeTree($info)
+    {
+        $result = [];
+
+        foreach ($info as $entry) {
+            switch ($entry[self::KEY_TYPE]) {
+                case self::KEY_BLOB:
+                    $entry[self::KEY_TYPE] = self::KEY_FILE;
+                break;
+
+                case self::KEY_TREE:
+                    $entry[self::KEY_TYPE] = self::KEY_DIRECTORY;
+                break;
+            }
+
+            $entry[self::KEY_CONTENTS] = false;
+            $entry[self::KEY_STREAM] = false;
+            $entry[self::KEY_TIMESTAMP] = false;
+            //@CHECKME: Should this be the same for the entire repo or the file 'mode'
+            $entry[self::KEY_VISIBILITY] = $this->getVisibility(null);
+            $result[] = $entry;
+        }
+
+        return $result;
     }
 }
