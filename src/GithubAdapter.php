@@ -6,16 +6,36 @@ use Github\Api\GitData;
 use Github\Api\Repo;
 use Github\Client;
 use League\Flysystem\Adapter\AbstractAdapter;
+use League\Flysystem\Adapter\Polyfill\StreamedTrait;
+use League\Flysystem\AdapterInterface;
 use League\Flysystem\Config;
+use League\Flysystem\Util;
 
+
+/**
+ * @FIXME: Once the functionality is clear, all of the Github Client calls need to be moved
+ *         to Potherca\Flysystem\GithubClient which is a composite of the Github\Api\* and
+ *         the Github\Client classes.
+ */
 class GithubAdapter extends AbstractAdapter
 {
+    use StreamedTrait;
+
+    /*
+        stream      stream (resource)
+     */
     const KEY_BLOB = 'blob';
     const KEY_CONTENTS = 'contents';
     const KEY_DIRECTORY = 'dir';
     const KEY_FILE = 'file';
+    const KEY_FILENAME = 'basename';
     const KEY_GIT_DATA = 'git';
+    const KEY_MODE = 'mode';
+    const KEY_NAME = 'name';
+    const KEY_PATH = 'path';
     const KEY_REPO = 'repo';
+    const KEY_SHA = 'sha';
+    const KEY_SIZE = 'size';
     const KEY_STREAM = 'stream';
     const KEY_TIMESTAMP = 'timestamp';
     const KEY_TREE = 'tree';
@@ -39,17 +59,14 @@ class GithubAdapter extends AbstractAdapter
     private $committerName;
     private $package;
     private $reference;
-    private $repository;
     private $vendor;
     private $committer = array(
         self::COMMITTER_NAME => null,
         self::COMMITTER_MAIL => null,
     );
-    private $visibility;
+    private $credentials = [];
 
     /**
-     * Constructor.
-     *
      * @param Client $client
      * @param Settings $settings
      */
@@ -58,12 +75,16 @@ class GithubAdapter extends AbstractAdapter
         Settings $settings
     ) {
         $this->client = $client;
+
+        /* @NOTE: If $client contains `credentials` but not an `author` we are
+         * still in `read-only` mode.
+         */
+        //@CHECKME Is it really necessary that we man-handle each setting?
+        //         Can't we just use the settings object directly instead?
         $this->repository = $settings->repository;
         $this->reference = $settings->reference;
-
         list($this->vendor, $this->package) = explode('/', $this->repository);
-
-        //@TODO: If $client contains credentials, $settings MUST contains author info!
+        $this->credentials = $settings->credentials;
     }
 
     /**
@@ -78,7 +99,7 @@ class GithubAdapter extends AbstractAdapter
     public function write($path, $contents, Config $config)
     {
         // Create a file
-        $fileInfo = $this->getRepositoryContents()->create(
+        $fileInfo = $this->repositoryContents()->create(
             $this->vendor,
             $this->package,
             $path,
@@ -102,7 +123,7 @@ class GithubAdapter extends AbstractAdapter
      */
     public function writeStream($path, $resource, Config $config)
     {
-        // TODO: Implement writeStream() method.
+        // @TODO: Use writeStream() trait, once write() has been implemented
     }
 
     /**
@@ -118,13 +139,13 @@ class GithubAdapter extends AbstractAdapter
     {
         $oldFile = $this->getMetadata($path);
 
-        $fileInfo = $this->getRepositoryContents()->update(
+        $fileInfo = $this->repositoryContents()->update(
             $this->vendor,
             $this->package,
             $path,
             $contents,
             $this->commitMessage,
-            $oldFile['sha'],
+            $oldFile[self::KEY_SHA],
             $this->branch,
             $this->committer
         );
@@ -183,7 +204,7 @@ class GithubAdapter extends AbstractAdapter
     {
         $oldFile = $this->getMetadata($path);
 
-        $fileInfo = $this->getRepositoryContents()->rm(
+        $fileInfo = $this->repositoryContents()->rm(
             $this->vendor,
             $this->package,
             $path,
@@ -243,18 +264,16 @@ class GithubAdapter extends AbstractAdapter
      */
     public function has($path)
     {
-        $fileExists = $this->getRepositoryContents()->exists(
+        return $this->repositoryContents()->exists(
             $this->vendor,
             $this->package,
             $path,
             $this->reference
         );
-
-        return $fileExists;
     }
 
     /**
-     * Download a file
+     * Read a file
      *
      * @param string $path
      *
@@ -262,46 +281,27 @@ class GithubAdapter extends AbstractAdapter
      */
     public function read($path)
     {
-        $fileContent = $this->getRepositoryContents()->download(
+        $fileContent = $this->repositoryContents()->download(
             $this->vendor,
             $this->package,
-            $path, $this->reference
+            $path,
+            $this->reference
         );
 
-        return $fileContent;
-    }
-
-    /**
-     * Read a file as a stream.
-     *
-     * @param string $path
-     *
-     * @return array|false
-     */
-    public function readStream($path)
-    {
-        // TODO: Implement readStream() method.
+        return [self::KEY_CONTENTS => $fileContent];
     }
 
     /**
      * List contents of a directory.
      *
-     * @param string $directory
+     * @param string $path
      * @param bool $recursive
      *
      * @return array
      */
-    public function listContents($directory = '', $recursive = false)
+    public function listContents($path = '/', $recursive = false)
     {
-        if ($recursive === true) {
-            $info = $this->getTree($recursive);
-            $result = $this->normalizeTree($info);
-        } else {
-            $metadata = $this->getMetadata($directory);
-            $result = $this->normalizeMetaData($metadata);
-        }
-
-        return $result;
+        return $this->internalMetadata($path, $recursive);
     }
 
     /**
@@ -314,7 +314,7 @@ class GithubAdapter extends AbstractAdapter
     public function getMetadata($path)
     {
         // Get information about a repository file or directory
-        $fileInfo = $this->getRepositoryContents()->show(
+        $fileInfo = $this->repositoryContents()->show(
             $this->vendor,
             $this->package,
             $path,
@@ -333,7 +333,7 @@ class GithubAdapter extends AbstractAdapter
      */
     public function getSize($path)
     {
-        // TODO: Implement getSize() method.
+        return $this->getMetadata($path);
     }
 
     /**
@@ -345,7 +345,19 @@ class GithubAdapter extends AbstractAdapter
      */
     public function getMimetype($path)
     {
-        // TODO: Implement getMimetype() method.
+        //@NOTE: The github API does not return a MIME type, so we have to guess :-(
+        if (strrpos($path, '.') > 1) {
+            $extension = substr($path, strrpos($path, '.')+1);
+        }
+
+        if (isset($extension)) {
+            $mimeType = Util\MimeType::detectByFileExtension($extension) ?: 'text/plain';
+        } else {
+            $content = $this->read($path);
+            $mimeType = Util\MimeType::detectByContent($content['contents']);
+        }
+
+        return ['mimetype' => $mimeType];
     }
 
     /**
@@ -358,7 +370,7 @@ class GithubAdapter extends AbstractAdapter
     public function getTimestamp($path)
     {
         // List commits for a file
-        $commits = $this->getRepository()->commits()->all(
+        $commits = $this->repository()->commits()->all(
             $this->vendor,
             $this->package,
             array(
@@ -366,8 +378,12 @@ class GithubAdapter extends AbstractAdapter
                 'path' => $path
             )
         );
-        //@TODO: Get timestamp from first commit in $commits
+        $updated = array_shift($commits);
+        //@NOTE: $created = array_pop($commits);
 
+        $time = new \DateTime($updated['commit']['committer']['date']);
+
+        return ['timestamp' => $time->getTimestamp()];
     }
 
     /**
@@ -379,20 +395,8 @@ class GithubAdapter extends AbstractAdapter
      */
     public function getVisibility($path)
     {
-        if ($this->visibility === null) {
-            $repo = $this->getRepository()->show(
-                $this->vendor,
-                $this->package
-            );
-
-            if ($repo[self::VISIBILITY_PRIVATE] === true) {
-                $this->visibility = self::VISIBILITY_PRIVATE;
-            } else {
-                $this->visibility = self::VISIBILITY_PUBLIC;
-            }
-        }
-
-        return $this->visibility;
+        $metadata = $this->internalMetadata($path, false);
+        return $metadata[0];
     }
 
     /**
@@ -439,34 +443,34 @@ class GithubAdapter extends AbstractAdapter
     /**
      * @return \Github\Api\Repository\Contents
      */
-    private function getRepositoryContents()
+    private function repositoryContents()
     {
-        return $this->getRepository()->contents();
+        return $this->repository()->contents();
     }
 
     /**
      * @return Repo
      */
-    private function getRepository()
+    private function repository()
     {
-        return $this->client->api(self::KEY_REPO);
+        return $this->fetchApi(self::KEY_REPO);
     }
 
     /**
      * @return GitData
      */
-    private function getGitData()
+    private function gitData()
     {
-        return $this->client->api(self::KEY_GIT_DATA);
+        return $this->fetchApi(self::KEY_GIT_DATA);
     }
 
     /**
      * @param $recursive
      * @return \Guzzle\Http\EntityBodyInterface|mixed|string
      */
-    private function getTree($recursive)
+    private function trees($recursive)
     {
-        $trees = $this->getGitData()->trees();
+        $trees = $this->gitData()->trees();
 
         $info = $trees->show(
             $this->vendor,
@@ -478,48 +482,137 @@ class GithubAdapter extends AbstractAdapter
         return $info[self::KEY_TREE];
     }
 
-    /**
-     * @param $info
-     * @return array
-     */
-    private function normalizeMetaData($info)
+    private function normalizeMetadata($metadata)
     {
         $result = [];
 
-        foreach ($info as $entry) {
-            $entry[self::KEY_CONTENTS] = false;
-            $entry[self::KEY_STREAM] = false;
-            $entry[self::KEY_TIMESTAMP] = false;
-            $entry[self::KEY_VISIBILITY] = $this->getVisibility(null);
+        if (is_array(current($metadata)) === false) {
+            $metadata = [$metadata];
+        }
+
+        foreach ($metadata as $entry) {
+            if (isset($entry[self::KEY_NAME]) === false){
+                if(isset($entry[self::KEY_FILENAME]) === true) {
+                    $entry[self::KEY_NAME] = $entry[self::KEY_FILENAME];
+                } elseif(isset($entry[self::KEY_PATH]) === true) {
+                    $entry[self::KEY_NAME] = $entry[self::KEY_PATH];
+                } else {
+                    // ?
+                }
+            }
+
+            if (isset($entry[self::KEY_TYPE]) === true) {
+                switch ($entry[self::KEY_TYPE]) {
+                    case self::KEY_BLOB:
+                        $entry[self::KEY_TYPE] = self::KEY_FILE;
+                        break;
+
+                    case self::KEY_TREE:
+                        $entry[self::KEY_TYPE] = self::KEY_DIRECTORY;
+                        break;
+                }
+            }
+
+            if (isset($entry[self::KEY_CONTENTS]) === false) {
+                $entry[self::KEY_CONTENTS] = false;
+            }
+
+            if (isset($entry[self::KEY_STREAM]) === false) {
+                $entry[self::KEY_STREAM] = false;
+            }
+
+            if (isset($entry[self::KEY_TIMESTAMP]) === false) {
+                $entry[self::KEY_TIMESTAMP] = false;
+            }
+
+            if (isset($entry[self::KEY_MODE])) {
+                $entry[self::KEY_VISIBILITY] = $this->fooVisibility($entry[self::KEY_MODE]);
+            } else {
+                $entry[self::KEY_VISIBILITY] = false;
+            }
+
             $result[] = $entry;
         }
 
         return $result;
     }
 
-    private function normalizeTree($info)
+    /**
+     * @param $name
+     * @return \Github\Api\ApiInterface
+     */
+    private function fetchApi($name)
     {
-        $result = [];
+        $this->authenticate();
+        return $this->client->api($name);
+    }
 
-        foreach ($info as $entry) {
-            switch ($entry[self::KEY_TYPE]) {
-                case self::KEY_BLOB:
-                    $entry[self::KEY_TYPE] = self::KEY_FILE;
-                break;
+    private function authenticate()
+    {
+        static $hasRun;
 
-                case self::KEY_TREE:
-                    $entry[self::KEY_TYPE] = self::KEY_DIRECTORY;
-                break;
+        if ($hasRun === null) {
+            if (empty($this->credentials) === false) {
+                $credentials = array_replace(
+                    [null, null, null],
+                    $this->credentials
+                );
+
+                $this->client->authenticate(
+                    $credentials[1],
+                    $credentials[2],
+                    $credentials[0]
+                );
             }
-
-            $entry[self::KEY_CONTENTS] = false;
-            $entry[self::KEY_STREAM] = false;
-            $entry[self::KEY_TIMESTAMP] = false;
-            //@CHECKME: Should this be the same for the entire repo or the file 'mode'
-            $entry[self::KEY_VISIBILITY] = $this->getVisibility(null);
-            $result[] = $entry;
+            $hasRun = true;
         }
+    }
+
+    private function fooVisibility($permissions)
+    {
+        return $permissions & 0044 ? AdapterInterface::VISIBILITY_PUBLIC : AdapterInterface::VISIBILITY_PRIVATE;
+    }
+
+    private function getPathFromTree($metadata, $path, $recursive)
+    {
+        if (empty($path)) {
+            if ($recursive === false) {
+                $metadata = array_filter($metadata, function ($entry) use ($path) {
+                    return (strpos($entry[self::KEY_PATH], '/', strlen($path)) === false);
+                });
+            }
+        } else {
+            $metadata = array_filter($metadata, function ($entry) use ($path, $recursive) {
+                $match = false;
+
+                if (strpos($entry[self::KEY_PATH], $path) === 0) {
+                    if ($recursive === true) {
+                        $match = true;
+                    } else {
+                        $length = strlen($path);
+                        $match = (strpos($entry[self::KEY_PATH], '/', $length) === false);
+                    }
+                }
+
+                return $match;
+            });
+        }
+
+        return $metadata;
+    }
+
+    private function internalMetadata($path, $recursive)
+    {
+        // If $info['truncated'] is `true`, the number of items in the tree array
+        // exceeded the github maximum limit. If you need to fetch more items,
+        // multiple calls will be needed
+
+        $info = $this->trees($recursive);
+        $tree = $this->getPathFromTree($info, $path, $recursive);
+        $result = $this->normalizeMetadata($tree);
 
         return $result;
     }
 }
+
+/*EOF*/
