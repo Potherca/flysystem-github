@@ -5,6 +5,7 @@ namespace Potherca\Flysystem\Github;
 use Github\Api\GitData;
 use Github\Api\Repo;
 use Github\Client;
+use Github\Exception\RuntimeException;
 use League\Flysystem\Adapter\AbstractAdapter;
 use League\Flysystem\Adapter\Polyfill\StreamedTrait;
 use League\Flysystem\AdapterInterface;
@@ -19,6 +20,7 @@ use League\Flysystem\Util;
  */
 class GithubAdapter extends AbstractAdapter
 {
+    const NOT_FOUND_ERROR = 'Not Found';
     use StreamedTrait;
 
     /*
@@ -333,7 +335,16 @@ class GithubAdapter extends AbstractAdapter
      */
     public function getSize($path)
     {
-        return $this->getMetadata($path);
+        try {
+            $metadata = $this->getMetadata($path);
+        } catch (RuntimeException $exception) {
+            if ($exception->getMessage() === self::NOT_FOUND_ERROR) {
+                $metadata = false;
+            } else {
+                throw $exception;
+            }
+        }
+        return $metadata;
     }
 
     /**
