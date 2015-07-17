@@ -19,64 +19,73 @@ $ composer require potherca/flysystem-github
 ## Usage
 
 The Github adapter can be used *without* credentials to do read-only actions on
-public repositories. To save changes or read from private repositories, 
-credentials are required.
+public repositories. To avoid reaching the Github API limit, to save changes, or 
+to read from private repositories, credentials are required.
 
-To avoid the Github API limit or to save traffic caching can be utilized.
+Caching can be utilized to save traffic or to postpone reaching the Github API 
+limit.
 
 ### Basic Usage
 
 ```php
-use Github\Client;
+use Github\Client as GithubClient;
 use League\Flysystem\Filesystem;
+use Potherca\Flysystem\Github\Client;
 use Potherca\Flysystem\Github\GithubAdapter;
+use Potherca\Flysystem\Github\Settings;
 
 $project = 'thephpleague/flysystem';
 
-$client = new Client();
-$adapter = new GithubAdapter($client, $project);
+$settings = new Settings($project);
 
+$client = new Client(new GithubClient(), $settings);
+$adapter = new GithubAdapter($client);
 $filesystem = new Filesystem($adapter);
 ```
 
 ### Authentication
 
 ```php
-use Github\Client;
+use Github\Client as GithubClient;
 use League\Flysystem\Filesystem;
+use Potherca\Flysystem\Github\Client;
 use Potherca\Flysystem\Github\GithubAdapter;
+use Potherca\Flysystem\Github\Settings;
 
 $project = 'thephpleague/flysystem';
+$credentials = [Settings::AUTHENTICATE_USING_TOKEN, '83347e315b8bb4790a48ed6953a5ad9e825b4e10'];
+// or $authentications = [Settings::AUTHENTICATE_USING_PASSWORD, $username, $password];
+    
+$settings = new Settings($project, $credentials);
 
-$client = new Client();
-$client->authenticate($token, null, Client::AUTH_HTTP_TOKEN);
-// or $client->authenticate($username, $password, Client::AUTH_HTTP_PASSWORD);
-$adapter = new GithubAdapter($client, $project);
-
+$client = new Client(new GithubClient(), $settings);
+$adapter = new GithubAdapter($client);
 $filesystem = new Filesystem($adapter);
 ```
-
-For full details, see the [php-github-api documentation concerning authentication](https://github.com/KnpLabs/php-github-api/blob/master/doc/security.md).
 
 ### Cache Usage
 
 ```php
-use Github\Client;
+use Github\Client as GithubClient;
 use Github\HttpClient\CachedHttpClient as CachedClient;
 use Github\HttpClient\Cache\FilesystemCache as Cache;
 use League\Flysystem\Filesystem;
+use Potherca\Flysystem\Github\Client;
 use Potherca\Flysystem\Github\GithubAdapter;
+use Potherca\Flysystem\Github\Settings;
 
 $project = 'thephpleague/flysystem';
+
+$settings = new Settings($project);
 
 $cache = new Cache('/tmp/github-api-cache')
 $cacheClient = new CachedClient();
 $cacheClient->setCache($cache);
 
-$client = new Client($cacheClient);
-$adapter = new GithubAdapter($client, $project);
-
+$client = new Client($cacheClient, $settings);
+$adapter = new GithubAdapter($client);
 $filesystem = new Filesystem($adapter);
+
 ```
 
 ## Testing
