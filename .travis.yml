@@ -20,4 +20,4 @@ script:
   - vendor/bin/phpunit --configuration build/phpunit.xml && cat build/testdox.txt build/coverage.txt
 
 after_script:
-  # @TODO: ocular or coveralls?
+  - php vendor/bin/coveralls -v
