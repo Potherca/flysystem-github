@@ -37,11 +37,6 @@ class ClientTest extends \PHPUnit_Framework_TestCase
         $this->client = new Client($this->mockClient, $this->mockSettings);
     }
 
-    private function getClient()
-    {
-        return $this->client;
-    }
-
     /////////////////////////////////// TESTS \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
     /**
      * @uses Potherca\Flysystem\Github\Client::exists
@@ -90,7 +85,7 @@ class ClientTest extends \PHPUnit_Framework_TestCase
      */
     final public function testClientShouldUseValuesFromSettingsWhenAskingClientForFileContent()
     {
-        $client = $this->getClient();
+        $client = $this->client;
 
         $expected = self::MOCK_FILE_CONTENTS;
 
@@ -121,7 +116,7 @@ class ClientTest extends \PHPUnit_Framework_TestCase
      */
     final public function testClientShouldUseValuesFromSettingsWhenAskingClientIfFileExists()
     {
-        $client = $this->getClient();
+        $client = $this->client;
 
         $expected = self::MOCK_FILE_CONTENTS;
 
@@ -150,45 +145,13 @@ class ClientTest extends \PHPUnit_Framework_TestCase
     /**
      * @covers ::getLastUpdatedTimestamp
      */
-    final public function testClientShouldUseValuesFromSettingsWhenAskingClientForgetLastUpdatedTimestamp()
+    final public function testClientShouldUseValuesFromSettingsWhenAskingClientForLastUpdatedTimestamp()
     {
-        $client = $this->getClient();
-        date_default_timezone_set('UTC');
+        $client = $this->client;
 
         $expected = ['timestamp' => 1420070400];
 
-        $mockVendor = 'vendor';
-        $mockPackage = 'package';
-        $mockBranch = 'branch';
-
-        $this->prepareMockSettings([
-            'getVendor' => $mockVendor,
-            'getPackage' => $mockPackage,
-            'getBranch' => $mockBranch,
-        ]);
-
-        $apiParameters = [
-            $mockVendor,
-            $mockPackage,
-            [
-                'sha' => $mockBranch,
-                'path' => self::MOCK_FILE_PATH
-            ]
-
-        ];
-        $apiOutput = [
-            ['commit' => ['committer' => ['date' => '20150101']]],
-            ['commit' => ['committer' => ['date' => '20140202']]],
-            ['commit' => ['committer' => ['date' => '20130303']]],
-        ];
-
-        $this->prepareMockApi(
-            'all',
-            $client::API_REPO,
-            $apiParameters,
-            $apiOutput,
-            Commits::class
-        );
+        $this->prepareFixturesForTimeStamp();
 
         $actual = $client->getLastUpdatedTimestamp(self::MOCK_FILE_PATH);
 
@@ -196,11 +159,28 @@ class ClientTest extends \PHPUnit_Framework_TestCase
     }
 
     /**
+     * @covers ::getCreatedTimestamp
+     *
+     * @param Client $client
+     */
+    final public function testClientShouldUseValuesFromSettingsWhenAskingClientForCreatedTimestamp()
+    {
+        $client = $this->client;
+
+        $expected = ['timestamp' => 1362268800];
+
+        $this->prepareFixturesForTimeStamp();
+
+        $actual = $client->getCreatedTimestamp(self::MOCK_FILE_PATH);
+
+        $this->assertEquals($expected, $actual);
+    }
+    /**
      * @covers ::getMetaData
      */
     final public function testClientShouldUseValuesFromSettingsWhenAskingClientForFileInfo()
     {
-        $client = $this->getClient();
+        $client = $this->client;
 
         $expected = self::MOCK_FILE_CONTENTS;
 
@@ -231,7 +211,7 @@ class ClientTest extends \PHPUnit_Framework_TestCase
      */
     final public function testClientShouldAccountForFileNotExistingWhenAskingInfoForFile()
     {
-        $client = $this->getClient();
+        $client = $this->client;
 
         $expected = false;
 
@@ -249,7 +229,7 @@ class ClientTest extends \PHPUnit_Framework_TestCase
      */
     final public function testClientShouldPassOtherRuntimeExceptionsWhenAskingInfoForFileCausesRuntimeException()
     {
-        $client = $this->getClient();
+        $client = $this->client;
 
         $this->setExpectedException(RuntimeException::class, self::MOCK_FILE_CONTENTS);
 
@@ -269,7 +249,7 @@ class ClientTest extends \PHPUnit_Framework_TestCase
      */
     final public function testClientShouldPassOnExceptionsWhenAskingInfoForFileCausesAnException()
     {
-        $client = $this->getClient();
+        $client = $this->client;
 
         $this->setExpectedException(\RuntimeException::class, Client::ERROR_NOT_FOUND);
 
@@ -300,7 +280,7 @@ class ClientTest extends \PHPUnit_Framework_TestCase
         $recursive,
         $truncated
     ) {
-        $client = $this->getClient();
+        $client = $this->client;
 
         $mockVendor = 'vendor';
         $mockPackage = 'package';
@@ -332,7 +312,7 @@ class ClientTest extends \PHPUnit_Framework_TestCase
      */
     final public function testClientShouldUseFileExtensionToGuessMimeTypeWhenExtensionIsAvailable()
     {
-        $client = $this->getClient();
+        $client = $this->client;
 
         $expected = 'image/png';
 
@@ -352,7 +332,7 @@ class ClientTest extends \PHPUnit_Framework_TestCase
      */
     final public function testClientShouldUseFileContentsToGuessMimeTypeWhenExtensionUnavailable()
     {
-        $client = $this->getClient();
+        $client = $this->client;
 
         $expected = 'image/png';
 
@@ -390,7 +370,7 @@ class ClientTest extends \PHPUnit_Framework_TestCase
      */
     final public function testClientShouldUseCredentialsWhenTheyHaveBeenGiven()
     {
-        $client = $this->getClient();
+        $client = $this->client;
 
         $mockVendor = 'vendor';
         $mockPackage = 'package';
@@ -532,6 +512,45 @@ class ClientTest extends \PHPUnit_Framework_TestCase
             ],
             'truncated' => $truncated,
         ];
+    }
+
+    private function prepareFixturesForTimeStamp()
+    {
+        date_default_timezone_set('UTC');
+
+        $mockVendor = 'vendor';
+        $mockPackage = 'package';
+        $mockBranch = 'branch';
+
+        $this->prepareMockSettings([
+            'getVendor' => $mockVendor,
+            'getPackage' => $mockPackage,
+            'getBranch' => $mockBranch,
+        ]);
+
+        $apiParameters = [
+            $mockVendor,
+            $mockPackage,
+            [
+                'sha' => $mockBranch,
+                'path' => self::MOCK_FILE_PATH
+            ]
+
+        ];
+
+        $apiOutput = [
+            ['commit' => ['committer' => ['date' => '20150101']]],
+            ['commit' => ['committer' => ['date' => '20140202']]],
+            ['commit' => ['committer' => ['date' => '20130303']]],
+        ];
+
+        $this->prepareMockApi(
+            'all',
+            Client::API_REPO,
+            $apiParameters,
+            $apiOutput,
+            Commits::class
+        );
     }
 
     /////////////////////////////// DATAPROVIDERS \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
@@ -750,10 +769,11 @@ class ClientTest extends \PHPUnit_Framework_TestCase
                 '',
                 [
                     [
+                        'name' => null,
+                        'visibility' => null,
                         'contents' => null,
                         'stream' => null,
-                        'timestamp' => null,
-                        'visibility' => null
+                        'timestamp' => null
                     ]
                 ],
                 false,
@@ -763,10 +783,11 @@ class ClientTest extends \PHPUnit_Framework_TestCase
                 '',
                 [
                     [
+                        'name' => null,
+                        'visibility' => null,
                         'contents' => null,
                         'stream' => null,
                         'timestamp' => null,
-                        'visibility' => null
                     ]
                 ],
                 false,

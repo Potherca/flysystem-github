@@ -18,7 +18,6 @@ class Client implements ClientInterface
     const API_REPO = 'repo';
 
     const KEY_BLOB = 'blob';
-    const KEY_CONTENTS = 'contents';
     const KEY_DIRECTORY = 'dir';
     const KEY_FILE = 'file';
     const KEY_FILENAME = 'basename';
@@ -32,10 +31,11 @@ class Client implements ClientInterface
     const KEY_TREE = 'tree';
     const KEY_TYPE = 'type';
     const KEY_VISIBILITY = 'visibility';
+    const ERROR_NO_NAME = 'Could not set name for entry';
 
     /** @var GithubClient */
     private $client;
-    /** @var Settings */
+    /** @var SettingsInterface */
     private $settings;
     /** @var bool */
     private $isAuthenticationAttempted = false;
@@ -125,20 +125,27 @@ class Client implements ClientInterface
      */
     final public function getLastUpdatedTimestamp($path)
     {
-        // List commits for a file
-        $commits = $this->getRepositoryApi()->commits()->all(
-            $this->settings->getVendor(),
-            $this->settings->getPackage(),
-            array(
-                'sha' => $this->settings->getBranch(),
-                'path' => $path
-            )
-        );
+        $commits = $this->commitsForFile($path);
 
         $updated = array_shift($commits);
-        //@NOTE: $created = array_pop($commits);
 
         $time = new \DateTime($updated['commit']['committer']['date']);
+
+        return ['timestamp' => $time->getTimestamp()];
+    }
+
+    /**
+     * @param string $path
+     *
+     * @return array
+     */
+    final public function getCreatedTimestamp($path)
+    {
+        $commits = $this->commitsForFile($path);
+
+        $created = array_pop($commits);
+
+        $time = new \DateTime($created['commit']['committer']['date']);
 
         return ['timestamp' => $time->getTimestamp()];
     }
@@ -294,49 +301,95 @@ class Client implements ClientInterface
         }
 
         foreach ($metadata as $entry) {
-            if (isset($entry[self::KEY_NAME]) === false){
-                if(isset($entry[self::KEY_FILENAME]) === true) {
-                    $entry[self::KEY_NAME] = $entry[self::KEY_FILENAME];
-                } elseif(isset($entry[self::KEY_PATH]) === true) {
-                    $entry[self::KEY_NAME] = $entry[self::KEY_PATH];
-                } else {
-                    // ?
-                }
-            }
+            $this->setEntryName($entry);
+            $this->setEntryType($entry);
+            $this->setEntryVisibility($entry);
 
-            if (isset($entry[self::KEY_TYPE]) === true) {
-                switch ($entry[self::KEY_TYPE]) {
-                    case self::KEY_BLOB:
-                        $entry[self::KEY_TYPE] = self::KEY_FILE;
-                        break;
+            $this->setDefaultValue($entry, self::KEY_CONTENTS);
+            $this->setDefaultValue($entry, self::KEY_STREAM);
+            $this->setDefaultValue($entry, self::KEY_TIMESTAMP);
 
-                    case self::KEY_TREE:
-                        $entry[self::KEY_TYPE] = self::KEY_DIRECTORY;
-                        break;
-                }
-            }
-
-            if (isset($entry[self::KEY_CONTENTS]) === false) {
-                $entry[self::KEY_CONTENTS] = false;
-            }
-
-            if (isset($entry[self::KEY_STREAM]) === false) {
-                $entry[self::KEY_STREAM] = false;
-            }
-
-            if (isset($entry[self::KEY_TIMESTAMP]) === false) {
-                $entry[self::KEY_TIMESTAMP] = false;
-            }
-
-            if (isset($entry[self::KEY_MODE])) {
-                $entry[self::KEY_VISIBILITY] = $this->guessVisibility($entry[self::KEY_MODE]);
-            } else {
-                $entry[self::KEY_VISIBILITY] = false;
-            }
 
             $result[] = $entry;
         }
 
         return $result;
+    }
+
+    /**
+     * @param $path
+     *
+     * @return array
+     */
+    private function commitsForFile($path)
+    {
+        return $this->getRepositoryApi()->commits()->all(
+            $this->settings->getVendor(),
+            $this->settings->getPackage(),
+            array(
+                'sha' => $this->settings->getBranch(),
+                'path' => $path
+            )
+        );
+    }
+
+    /**
+     * @param array $entry
+     * @param string $key
+     * @param bool $default
+     *
+     * @return mixed
+     */
+    private function setDefaultValue(array &$entry, $key, $default = false)
+    {
+        if (isset($entry[$key]) === false) {
+            $entry[$key] = $default;
+        }
+    }
+
+    /**
+     * @param $entry
+     */
+    private function setEntryType(&$entry)
+    {
+        if (isset($entry[self::KEY_TYPE]) === true) {
+            switch ($entry[self::KEY_TYPE]) {
+                case self::KEY_BLOB:
+                    $entry[self::KEY_TYPE] = self::KEY_FILE;
+                    break;
+
+                case self::KEY_TREE:
+                    $entry[self::KEY_TYPE] = self::KEY_DIRECTORY;
+                    break;
+            }
+        }
+    }
+
+    /**
+     * @param $entry
+     */
+    private function setEntryVisibility(&$entry)
+    {
+        if (isset($entry[self::KEY_MODE])) {
+            $entry[self::KEY_VISIBILITY] = $this->guessVisibility($entry[self::KEY_MODE]);
+        } else {
+            $entry[self::KEY_VISIBILITY] = false;
+        }
+    }
+
+    /**
+     * @param $entry
+     */
+    private function setEntryName(&$entry)
+    {
+        if (isset($entry[self::KEY_NAME]) === false) {
+            if (isset($entry[self::KEY_FILENAME]) === true) {
+                $entry[self::KEY_NAME] = $entry[self::KEY_FILENAME];
+            } elseif (isset($entry[self::KEY_PATH]) === true) {
+                $entry[self::KEY_NAME] = $entry[self::KEY_PATH];
+            } else {
+                $entry[self::KEY_NAME] = null;
+            }
+        }
     }
 }

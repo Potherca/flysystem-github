@@ -9,6 +9,8 @@ namespace Potherca\Flysystem\Github;
 
 interface ClientInterface
 {
+    const KEY_CONTENTS = 'contents';
+
     /**
      * @param string $path
      *
