@@ -14,16 +14,17 @@ class Client
     ////////////////////////////// CLASS PROPERTIES \\\\\\\\\\\\\\\\\\\\\\\\\\\\
     const ERROR_NOT_FOUND = 'Not Found';
 
+    const API_GIT_DATA = 'git';
+    const API_REPO = 'repo';
+
     const KEY_BLOB = 'blob';
     const KEY_CONTENTS = 'contents';
     const KEY_DIRECTORY = 'dir';
     const KEY_FILE = 'file';
     const KEY_FILENAME = 'basename';
-    const KEY_GIT_DATA = 'git';
     const KEY_MODE = 'mode';
     const KEY_NAME = 'name';
     const KEY_PATH = 'path';
-    const KEY_REPO = 'repo';
     const KEY_SHA = 'sha';
     const KEY_SIZE = 'size';
     const KEY_STREAM = 'stream';
@@ -53,7 +54,7 @@ class Client
      */
     private function getGitDataApi()
     {
-        return $this->getApi(self::KEY_GIT_DATA);
+        return $this->getApi(self::API_GIT_DATA);
     }
 
     /**
@@ -61,7 +62,7 @@ class Client
      */
     private function getRepositoryApi()
     {
-        return $this->getApi(self::KEY_REPO);
+        return $this->getApi(self::API_REPO);
     }
 
     /**
@@ -84,25 +85,6 @@ class Client
     }
 
     /**
-     * @param $path
-     *
-     * @return null|string
-     *
-     * @throws \Github\Exception\ErrorException
-     */
-    final public function download($path)
-    {
-        $fileContent = $this->getRepositoryContent()->download(
-            $this->settings->getVendor(),
-            $this->settings->getPackage(),
-            $path,
-            $this->settings->getReference()
-        );
-
-        return $fileContent;
-    }
-
-    /**
      * @param string $path
      *
      * @return bool
@@ -110,6 +92,23 @@ class Client
     final public function exists($path)
     {
         return $this->getRepositoryContent()->exists(
+            $this->settings->getVendor(),
+            $this->settings->getPackage(),
+            $path,
+            $this->settings->getReference()
+        );
+    }
+
+    /**
+     * @param $path
+     *
+     * @return null|string
+     *
+     * @throws \Github\Exception\ErrorException
+     */
+    final public function getFileContents($path)
+    {
+        return $this->getRepositoryContent()->download(
             $this->settings->getVendor(),
             $this->settings->getPackage(),
             $path,
@@ -150,7 +149,12 @@ class Client
     final public function getMetaData($path)
     {
         try {
-            $metadata = $this->show($path);
+            $metadata = $this->getRepositoryContent()->show(
+                $this->settings->getVendor(),
+                $this->settings->getPackage(),
+                $path,
+                $this->settings->getReference()
+            );
         } catch (RuntimeException $exception) {
             if ($exception->getMessage() === self::ERROR_NOT_FOUND) {
                 $metadata = false;
@@ -196,29 +200,11 @@ class Client
         if (isset($extension)) {
             $mimeType = MimeType::detectByFileExtension($extension) ?: 'text/plain';
         } else {
-            $content = $this->download($path);
+            $content = $this->getFileContents($path);
             $mimeType = MimeType::detectByContent($content);
         }
 
         return $mimeType;
-    }
-
-    /**
-     * Get information about a repository file or directory
-     *
-     * @param string $path
-     *
-     * @return array
-     */
-    final public function show($path)
-    {
-        $fileInfo = $this->getRepositoryContent()->show(
-            $this->settings->getVendor(),
-            $this->settings->getPackage(),
-            $path,
-            $this->settings->getReference()
-        );
-        return $fileInfo;
     }
 
     ////////////////////////////// UTILITY METHODS \\\\\\\\\\\\\\\\\\\\\\\\\\\\\
