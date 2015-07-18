@@ -2,12 +2,12 @@
 
 namespace Potherca\Flysystem\Github;
 
-use Github\Client;
+use Github\Client as GithubClient;
 
-class Settings
+class Settings implements SettingsInterface
 {
-    const AUTHENTICATE_USING_TOKEN = Client::AUTH_URL_TOKEN;
-    const AUTHENTICATE_USING_PASSWORD = Client::AUTH_HTTP_PASSWORD;
+    const AUTHENTICATE_USING_TOKEN = GithubClient::AUTH_URL_TOKEN;
+    const AUTHENTICATE_USING_PASSWORD = GithubClient::AUTH_HTTP_PASSWORD;
 
     const REFERENCE_HEAD = 'HEAD';
     const BRANCH_MASTER = 'master';
