@@ -14,8 +14,6 @@ class SettingsTest extends \PHPUnit_Framework_TestCase
     ////////////////////////////////// FIXTURES \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
     const MOCK_VENDOR_NAME = 'mock_vendor';
     const MOCK_PACKAGE_NAME = 'mock_package';
-    const MOCK_REPOSITORY_NAME = self::MOCK_VENDOR_NAME.'/'.self::MOCK_PACKAGE_NAME;
-    const MOCK_CREDENTIALS = ['mock_type', 'mock_user', 'mock_password'];
     const MOCK_BRANCH = 'mock_branch';
     const MOCK_REFERENCE = 'mock_reference';
 
@@ -28,8 +26,8 @@ class SettingsTest extends \PHPUnit_Framework_TestCase
     final protected function setUp()
     {
         $this->settings = new Settings(
-            self::MOCK_REPOSITORY_NAME,
-            self::MOCK_CREDENTIALS,
+            $this->getMockRespositoryName(),
+            $this->getMockCredentials(),
             self::MOCK_BRANCH,
             self::MOCK_REFERENCE
         );
@@ -57,7 +55,7 @@ class SettingsTest extends \PHPUnit_Framework_TestCase
     {
         $settings = $this->settings;
 
-        $expected = self::MOCK_REPOSITORY_NAME;
+        $expected = $this->getMockRespositoryName();
 
         $actual = $settings->getRepository();
 
@@ -85,7 +83,7 @@ class SettingsTest extends \PHPUnit_Framework_TestCase
      */
     final public function testSettingsShouldOnlyNeedRepositoryNameWhenInstantiated()
     {
-        $settings = new Settings(self::MOCK_REPOSITORY_NAME);
+        $settings = new Settings($this->getMockRespositoryName());
         $this->assertInstanceOf(Settings::class, $settings);
     }
 
@@ -94,7 +92,7 @@ class SettingsTest extends \PHPUnit_Framework_TestCase
      */
     final public function testSettingsShouldContainVendorNameFromGivenRepositoryWhenInstantiated()
     {
-        $settings = new Settings(self::MOCK_REPOSITORY_NAME);
+        $settings = new Settings($this->getMockRespositoryName());
 
         $expected = self::MOCK_VENDOR_NAME;
 
@@ -108,7 +106,7 @@ class SettingsTest extends \PHPUnit_Framework_TestCase
      */
     final public function testSettingsShouldContainPackageNameFromGivenRepositoryWhenInstantiated()
     {
-        $settings = new Settings(self::MOCK_REPOSITORY_NAME);
+        $settings = new Settings($this->getMockRespositoryName());
 
         $expected = self::MOCK_PACKAGE_NAME;
 
@@ -122,7 +120,7 @@ class SettingsTest extends \PHPUnit_Framework_TestCase
      */
     final public function testSettingsShouldContainEmptyCredentialsWhenInstantiatedWithoutCredentials()
     {
-        $settings = new Settings(self::MOCK_REPOSITORY_NAME);
+        $settings = new Settings($this->getMockRespositoryName());
 
         $expected = [];
 
@@ -138,7 +136,7 @@ class SettingsTest extends \PHPUnit_Framework_TestCase
     {
         $settings = $this->settings;
 
-        $expected = self::MOCK_CREDENTIALS;
+        $expected = $this->getMockCredentials();
 
         $actual = $settings->getCredentials();
 
@@ -150,7 +148,7 @@ class SettingsTest extends \PHPUnit_Framework_TestCase
      */
     final public function testSettingsShouldContainMasterAsBranchWhenInstantiatedWithoutBranch()
     {
-        $settings = new Settings(self::MOCK_REPOSITORY_NAME);
+        $settings = new Settings($this->getMockRespositoryName());
 
         $expected = 'master';
 
@@ -178,7 +176,7 @@ class SettingsTest extends \PHPUnit_Framework_TestCase
      */
     final public function testSettingsShouldContainHeadAsReferenceWhenInstantiatedWithoutReference()
     {
-        $settings = new Settings(self::MOCK_REPOSITORY_NAME);
+        $settings = new Settings($this->getMockRespositoryName());
 
         $expected = 'HEAD';
 
@@ -199,6 +197,23 @@ class SettingsTest extends \PHPUnit_Framework_TestCase
         $actual = $settings->getReference();
 
         $this->assertEquals($expected, $actual);
+    }
+
+    ////////////////////////////// MOCKS AND STUBS \\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+    /**
+     * @return string
+     */
+    private function getMockRespositoryName()
+    {
+        return self::MOCK_VENDOR_NAME . '/' . self::MOCK_PACKAGE_NAME;
+    }
+
+    /**
+     * @return array
+     */
+    private function getMockCredentials()
+    {
+        return ['mock_type', 'mock_user', 'mock_password'];
     }
 
     /////////////////////////////// DATAPROVIDERS \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\

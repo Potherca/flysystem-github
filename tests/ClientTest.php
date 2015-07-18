@@ -153,8 +153,9 @@ class ClientTest extends \PHPUnit_Framework_TestCase
     final public function testClientShouldUseValuesFromSettingsWhenAskingClientForgetLastUpdatedTimestamp()
     {
         $client = $this->getClient();
+        date_default_timezone_set('UTC');
 
-        $expected = ['timestamp' => 1420066800];
+        $expected = ['timestamp' => 1420070400];
 
         $mockVendor = 'vendor';
         $mockPackage = 'package';
@@ -411,6 +412,7 @@ class ClientTest extends \PHPUnit_Framework_TestCase
 
         $client->exists(self::MOCK_FILE_PATH);
     }
+
     ////////////////////////////// MOCKS AND STUBS \\\\\\\\\\\\\\\\\\\\\\\\\\\\\
     /**
      * @return GithubClient|\PHPUnit_Framework_MockObject_MockObject
