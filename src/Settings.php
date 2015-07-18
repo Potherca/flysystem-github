@@ -11,6 +11,7 @@ class Settings
 
     const REFERENCE_HEAD = 'HEAD';
     const BRANCH_MASTER = 'master';
+    const ERROR_INVALID_REPOSITORY_NAME = 'Given Repository name "%s" should be in the format of "vendor/project"';
 
     /** @var string */
     private $repository;
@@ -27,27 +28,20 @@ class Settings
         $branch = self::BRANCH_MASTER,
         $reference = self::REFERENCE_HEAD
     ) {
-        $this->branch = $branch;
+        $this->isValidRepositoryName($repository);
+
+        $this->branch = (string) $branch;
         $this->credentials = $credentials;
-        $this->reference = $reference;
-        $this->repository = $repository;
-    }
-
-
-    /**
-     * @return string
-     */
-    final public function getRepository()
-    {
-        return $this->repository;
+        $this->reference = (string) $reference;
+        $this->repository = (string) $repository;
     }
 
     /**
      * @return string
      */
-    final public function getReference()
+    final public function getBranch()
     {
-        return $this->reference;
+        return $this->branch;
     }
 
     /**
@@ -61,9 +55,35 @@ class Settings
     /**
      * @return string
      */
-    final public function getBranch()
+    final public function getReference()
     {
-        return $this->branch;
+        return $this->reference;
+    }
+
+    /**
+     * @return string
+     */
+    final public function getRepository()
+    {
+        return $this->repository;
+    }
+
+    /**
+     * @param $repository
+     */
+    private function isValidRepositoryName($repository)
+    {
+        if (is_string($repository) === false
+            || strpos($repository, '/') === false
+            || strpos($repository, '/') === 0
+            || substr_count($repository, '/') !== 1
+        ) {
+            $message = sprintf(
+                self::ERROR_INVALID_REPOSITORY_NAME,
+                var_export($repository, true)
+            );
+            throw new \InvalidArgumentException($message);
+        }
     }
 }
 
