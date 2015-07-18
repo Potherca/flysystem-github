@@ -10,9 +10,8 @@ sudo: false
 
 matrix:
   allow_failures:
-    - php:
-      - 7.0
-      - hhvm
+    - php: 7.0
+    - php: hhvm
 
 install:
   - composer install
