@@ -327,6 +327,8 @@ class ClientTest extends \PHPUnit_Framework_TestCase
 
     /**
      * @covers ::guessMimeType
+     *
+     * @uses League\Flysystem\Util\MimeType
      */
     final public function testClientShouldUseFileExtensionToGuessMimeTypeWhenExtensionIsAvailable()
     {
@@ -343,6 +345,8 @@ class ClientTest extends \PHPUnit_Framework_TestCase
 
     /**
      * @covers ::guessMimeType
+     *
+     * @uses League\Flysystem\Util\MimeType
      *
      * @uses Potherca\Flysystem\Github\Client::getFileContents
      */

@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:noNamespaceSchemaLocation="http://schema.phpunit.de/4.7/phpunit.xsd"
+
+    backupGlobals="false"
+    beStrictAboutChangesToGlobalState="true"
+    beStrictAboutOutputDuringTests="true"
+    beStrictAboutTestSize="true"
+    beStrictAboutTestsThatDoNotTestAnything="true"
+    beStrictAboutTodoAnnotatedTests="true"
+    bootstrap="../vendor/autoload.php"
+    checkForUnintentionallyCoveredCode="true"
+    colors="true"
+    forceCoversAnnotation="true"
+    verbose="true"
+>
+    <testsuites>
+        <testsuite name="Flysystem Github Adapter Test Suite">
+            <directory>../tests</directory>
+        </testsuite>
+    </testsuites>
+    <filter>
+        <whitelist>
+            <directory suffix=".php">src/</directory>
+        </whitelist>
+    </filter>
+    <logging>
+        <log type="testdox-text" target="build/testdox.txt"/>
+        <log type="tap" target="build/report.tap"/>
+        <log type="junit" target="build/report.junit.xml"/>
+        <log type="coverage-clover" showUncoveredFiles="true" target="build/logs/clover.xml"/>
+        <log type="coverage-text" showUncoveredFiles="true" target="build/coverage.txt"/>
+    </logging>
+</phpunit>

@@ -19,8 +19,8 @@ install:
   - composer install
 
 script:
-  - composer test
+  - vendor/bin/phpunit --configuration build/phpunit.xml
+  - cat build/testdox.txt  build/coverage.txt
 
 after_script:
   # @TODO: ocular or coveralls?
-  cat build/testdox.txt  build/coverage.txt
