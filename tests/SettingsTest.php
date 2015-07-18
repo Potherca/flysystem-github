@@ -11,7 +11,10 @@ namespace Potherca\Flysystem\Github;
  */
 class SettingsTest extends \PHPUnit_Framework_TestCase
 {
-    const MOCK_REPOSITORY_NAME = 'foo/bar';
+    ////////////////////////////////// FIXTURES \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+    const MOCK_VENDOR_NAME = 'mock_vendor';
+    const MOCK_PACKAGE_NAME = 'mock_package';
+    const MOCK_REPOSITORY_NAME = self::MOCK_VENDOR_NAME.'/'.self::MOCK_PACKAGE_NAME;
     const MOCK_CREDENTIALS = ['mock_type', 'mock_user', 'mock_password'];
     const MOCK_BRANCH = 'mock_branch';
     const MOCK_REFERENCE = 'mock_reference';
@@ -32,10 +35,11 @@ class SettingsTest extends \PHPUnit_Framework_TestCase
         );
     }
 
+    /////////////////////////////////// TESTS \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
     /**
      * @covers ::__construct
      */
-    final public function testSettingsShouldComplainWhenInstantiatedWithoutProject()
+    final public function testSettingsShouldComplainWhenInstantiatedWithoutRepositoryName()
     {
         $this->setExpectedException(
             \PHPUnit_Framework_Error_Warning::class,
@@ -83,6 +87,34 @@ class SettingsTest extends \PHPUnit_Framework_TestCase
     {
         $settings = new Settings(self::MOCK_REPOSITORY_NAME);
         $this->assertInstanceOf(Settings::class, $settings);
+    }
+
+    /**
+     * @covers ::getVendor
+     */
+    final public function testSettingsShouldContainVendorNameFromGivenRepositoryWhenInstantiated()
+    {
+        $settings = new Settings(self::MOCK_REPOSITORY_NAME);
+
+        $expected = self::MOCK_VENDOR_NAME;
+
+        $actual = $settings->getVendor();
+
+        $this->assertEquals($expected, $actual);
+    }
+
+    /**
+     * @covers ::getPackage
+     */
+    final public function testSettingsShouldContainPackageNameFromGivenRepositoryWhenInstantiated()
+    {
+        $settings = new Settings(self::MOCK_REPOSITORY_NAME);
+
+        $expected = self::MOCK_PACKAGE_NAME;
+
+        $actual = $settings->getPackage();
+
+        $this->assertEquals($expected, $actual);
     }
 
     /**
@@ -169,6 +201,7 @@ class SettingsTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals($expected, $actual);
     }
 
+    /////////////////////////////// DATAPROVIDERS \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
     final public function provideInvalidRepositoryNames()
     {
         return [

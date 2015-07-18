@@ -36,10 +36,6 @@ class Client
     private $client;
     /** @var Settings */
     private $settings;
-    /** @var string */
-    private $package;
-    /** @var string */
-    private $vendor;
 
     //////////////////////////// SETTERS AND GETTERS \\\\\\\\\\\\\\\\\\\\\\\\\\\
     /**
@@ -79,13 +75,12 @@ class Client
     //////////////////////////////// PUBLIC API \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
     final public function __construct(GithubClient $client, SettingsInterface $settings)
     {
-        $this->client = $client;
-        $this->settings = $settings;
-
         /* @NOTE: If $settings contains `credentials` but not an `author` we are
          * still in `read-only` mode.
          */
-        list($this->vendor, $this->package) = explode('/', $this->settings->getRepository());
+
+        $this->client = $client;
+        $this->settings = $settings;
     }
 
     /**
@@ -98,8 +93,8 @@ class Client
     final public function download($path)
     {
         $fileContent = $this->getRepositoryContent()->download(
-            $this->vendor,
-            $this->package,
+            $this->settings->getVendor(),
+            $this->settings->getPackage(),
             $path,
             $this->settings->getReference()
         );
@@ -115,8 +110,8 @@ class Client
     final public function exists($path)
     {
         return $this->getRepositoryContent()->exists(
-            $this->vendor,
-            $this->package,
+            $this->settings->getVendor(),
+            $this->settings->getPackage(),
             $path,
             $this->settings->getReference()
         );
@@ -131,8 +126,8 @@ class Client
     {
         // List commits for a file
         $commits = $this->getRepositoryApi()->commits()->all(
-            $this->vendor,
-            $this->package,
+            $this->settings->getVendor(),
+            $this->settings->getPackage(),
             array(
                 'sha' => $this->settings->getBranch(),
                 'path' => $path
@@ -218,8 +213,8 @@ class Client
     final public function show($path)
     {
         $fileInfo = $this->getRepositoryContent()->show(
-            $this->vendor,
-            $this->package,
+            $this->settings->getVendor(),
+            $this->settings->getPackage(),
             $path,
             $this->settings->getReference()
         );
@@ -297,8 +292,8 @@ class Client
         $trees = $this->getGitDataApi()->trees();
 
         $info = $trees->show(
-            $this->vendor,
-            $this->package,
+            $this->settings->getVendor(),
+            $this->settings->getPackage(),
             $this->settings->getReference(),
             $recursive
         );
