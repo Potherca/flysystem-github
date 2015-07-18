@@ -11,6 +11,7 @@ use League\Flysystem\Util\MimeType;
 
 class Client
 {
+    ////////////////////////////// CLASS PROPERTIES \\\\\\\\\\\\\\\\\\\\\\\\\\\\
     const ERROR_NOT_FOUND = 'Not Found';
 
     const KEY_BLOB = 'blob';
@@ -40,7 +41,43 @@ class Client
     /** @var string */
     private $vendor;
 
-    final public function __construct(GithubClient $client, Settings $settings)
+    //////////////////////////// SETTERS AND GETTERS \\\\\\\\\\\\\\\\\\\\\\\\\\\
+    /**
+     * @param string $name
+     * @return \Github\Api\ApiInterface
+     */
+    private function getApi($name)
+    {
+        $this->authenticate();
+        return $this->client->api($name);
+    }
+
+    /**
+     * @return GitData
+     */
+    private function getGitDataApi()
+    {
+        return $this->getApi(self::KEY_GIT_DATA);
+    }
+
+    /**
+     * @return Repo
+     */
+    private function getRepositoryApi()
+    {
+        return $this->getApi(self::KEY_REPO);
+    }
+
+    /**
+     * @return \Github\Api\Repository\Contents
+     */
+    private function getRepositoryContent()
+    {
+        return $this->getRepositoryApi()->contents();
+    }
+
+    //////////////////////////////// PUBLIC API \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+    final public function __construct(GithubClient $client, SettingsInterface $settings)
     {
         $this->client = $client;
         $this->settings = $settings;
@@ -52,21 +89,6 @@ class Client
     }
 
     /**
-     * @param string $path
-     *
-     * @return bool
-     */
-    final public function exists($path)
-    {
-        return $this->repositoryContents()->exists(
-            $this->vendor,
-            $this->package,
-            $path,
-            $this->settings->getReference()
-        );
-    }
-
-    /**
      * @param $path
      *
      * @return null|string
@@ -75,7 +97,7 @@ class Client
      */
     final public function download($path)
     {
-        $fileContent = $this->repositoryContents()->download(
+        $fileContent = $this->getRepositoryContent()->download(
             $this->vendor,
             $this->package,
             $path,
@@ -87,21 +109,17 @@ class Client
 
     /**
      * @param string $path
-     * @param bool $recursive
      *
-     * @return array
+     * @return bool
      */
-    final public function metadata($path, $recursive)
+    final public function exists($path)
     {
-        // If $info['truncated'] is `true`, the number of items in the tree array
-        // exceeded the github maximum limit. If you need to fetch more items,
-        // multiple calls will be needed
-
-        $info = $this->trees($recursive);
-        $tree = $this->getPathFromTree($info, $path, $recursive);
-        $result = $this->normalizeMetadata($tree);
-
-        return $result;
+        return $this->getRepositoryContent()->exists(
+            $this->vendor,
+            $this->package,
+            $path,
+            $this->settings->getReference()
+        );
     }
 
     /**
@@ -109,16 +127,24 @@ class Client
      *
      * @return array
      */
-    final public function show($path)
+    final public function getLastUpdatedTimestamp($path)
     {
-        // Get information about a repository file or directory
-        $fileInfo = $this->repositoryContents()->show(
+        // List commits for a file
+        $commits = $this->getRepositoryApi()->commits()->all(
             $this->vendor,
             $this->package,
-            $path,
-            $this->settings->getReference()
+            array(
+                'sha' => $this->settings->getBranch(),
+                'path' => $path
+            )
         );
-        return $fileInfo;
+
+        $updated = array_shift($commits);
+        //@NOTE: $created = array_pop($commits);
+
+        $time = new \DateTime($updated['commit']['committer']['date']);
+
+        return ['timestamp' => $time->getTimestamp()];
     }
 
     /**
@@ -137,6 +163,25 @@ class Client
                 throw $exception;
             }
         }
+
+        return $metadata;
+    }
+
+    /**
+     * @param string $path
+     * @param bool $recursive
+     *
+     * @return array
+     */
+    final public function getMetadataFromTree($path, $recursive)
+    {
+        // If $info['truncated'] is `true`, the number of items in the tree array
+        // exceeded the github maximum limit. If you need to fetch more items,
+        // multiple calls will be needed
+
+        $info = $this->getTreeInfo($recursive);
+        $treeMetadata = $this->extractMetaDataFromTreeInfo($info, $path, $recursive);
+        $metadata = $this->normalizeTreeMetadata($treeMetadata);
 
         return $metadata;
     }
@@ -164,38 +209,24 @@ class Client
     }
 
     /**
+     * Get information about a repository file or directory
+     *
      * @param string $path
      *
      * @return array
      */
-    final public function updated($path)
+    final public function show($path)
     {
-        // List commits for a file
-        $commits = $this->repository()->commits()->all(
+        $fileInfo = $this->getRepositoryContent()->show(
             $this->vendor,
             $this->package,
-            array(
-                'sha' => $this->settings->getBranch(),
-                'path' => $path
-            )
+            $path,
+            $this->settings->getReference()
         );
-
-        $updated = array_shift($commits);
-        //@NOTE: $created = array_pop($commits);
-
-        $time = new \DateTime($updated['commit']['committer']['date']);
-
-        return ['timestamp' => $time->getTimestamp()];
+        return $fileInfo;
     }
 
-    /**
-     * @return \Github\Api\Repository\Contents
-     */
-    private function repositoryContents()
-    {
-        return $this->repository()->contents();
-    }
-
+    ////////////////////////////// UTILITY METHODS \\\\\\\\\\\\\\\\\\\\\\\\\\\\\
     /**
      *
      */
@@ -204,10 +235,12 @@ class Client
         static $hasRun;
 
         if ($hasRun === null) {
-            if (empty($this->settings->getCredentials()) === false) {
+            $credentials = $this->settings->getCredentials();
+
+            if (empty($credentials) === false) {
                 $credentials = array_replace(
                     [null, null, null],
-                    $this->settings->getCredentials()
+                    $credentials
                 );
 
                 $this->client->authenticate(
@@ -221,40 +254,16 @@ class Client
     }
 
     /**
-     * @return Repo
-     */
-    private function repository()
-    {
-        return $this->fetchApi(self::KEY_REPO);
-    }
-
-    /**
-     * @param string $name
-     * @return \Github\Api\ApiInterface
-     */
-    private function fetchApi($name)
-    {
-        $this->authenticate();
-        return $this->client->api($name);
-    }
-
-    /**
-     * @param array $metadata
+     * @param array $tree
      * @param string $path
      * @param bool $recursive
      *
      * @return array
      */
-    private function getPathFromTree(array $metadata, $path, $recursive)
+    private function extractMetaDataFromTreeInfo(array $tree, $path, $recursive)
     {
-        if (empty($path)) {
-            if ($recursive === false) {
-                $metadata = array_filter($metadata, function ($entry) use ($path) {
-                    return (strpos($entry[self::KEY_PATH], '/', strlen($path)) === false);
-                });
-            }
-        } else {
-            $metadata = array_filter($metadata, function ($entry) use ($path, $recursive) {
+        if(empty($path) === false) {
+            $metadata = array_filter($tree, function ($entry) use ($path, $recursive) {
                 $match = false;
 
                 if (strpos($entry[self::KEY_PATH], $path) === 0) {
@@ -268,9 +277,42 @@ class Client
 
                 return $match;
             });
+        } elseif ($recursive === false) {
+            $metadata = array_filter($tree, function ($entry) use ($path) {
+                return (strpos($entry[self::KEY_PATH], '/', strlen($path)) === false);
+            });
+        } else {
+            $metadata = $tree;
         }
 
         return $metadata;
+    }
+
+    /**
+     * @param bool $recursive
+     * @return \Guzzle\Http\EntityBodyInterface|mixed|string
+     */
+    private function getTreeInfo($recursive)
+    {
+        $trees = $this->getGitDataApi()->trees();
+
+        $info = $trees->show(
+            $this->vendor,
+            $this->package,
+            $this->settings->getReference(),
+            $recursive
+        );
+
+        return $info[self::KEY_TREE];
+    }
+
+    /**
+     * @param $permissions
+     * @return string
+     */
+    private function guessVisibility($permissions)
+    {
+        return $permissions & 0044 ? AdapterInterface::VISIBILITY_PUBLIC : AdapterInterface::VISIBILITY_PRIVATE;
     }
 
     /**
@@ -278,7 +320,7 @@ class Client
      *
      * @return array
      */
-    private function normalizeMetadata($metadata)
+    private function normalizeTreeMetadata($metadata)
     {
         $result = [];
 
@@ -322,7 +364,7 @@ class Client
             }
 
             if (isset($entry[self::KEY_MODE])) {
-                $entry[self::KEY_VISIBILITY] = $this->visibility($entry[self::KEY_MODE]);
+                $entry[self::KEY_VISIBILITY] = $this->guessVisibility($entry[self::KEY_MODE]);
             } else {
                 $entry[self::KEY_VISIBILITY] = false;
             }
@@ -331,40 +373,5 @@ class Client
         }
 
         return $result;
-    }
-
-    /**
-     * @return GitData
-     */
-    private function gitData()
-    {
-        return $this->fetchApi(self::KEY_GIT_DATA);
-    }
-
-    /**
-     * @param bool $recursive
-     * @return \Guzzle\Http\EntityBodyInterface|mixed|string
-     */
-    private function trees($recursive)
-    {
-        $trees = $this->gitData()->trees();
-
-        $info = $trees->show(
-            $this->vendor,
-            $this->package,
-            $this->settings->getReference(),
-            $recursive
-        );
-
-        return $info[self::KEY_TREE];
-    }
-
-    /**
-     * @param $permissions
-     * @return string
-     */
-    private function visibility($permissions)
-    {
-        return $permissions & 0044 ? AdapterInterface::VISIBILITY_PUBLIC : AdapterInterface::VISIBILITY_PRIVATE;
     }
 }
