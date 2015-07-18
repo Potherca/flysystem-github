@@ -9,7 +9,7 @@ use Github\Exception\RuntimeException;
 use League\Flysystem\AdapterInterface;
 use League\Flysystem\Util\MimeType;
 
-class Client
+class Client implements ClientInterface
 {
     ////////////////////////////// CLASS PROPERTIES \\\\\\\\\\\\\\\\\\\\\\\\\\\\
     const ERROR_NOT_FOUND = 'Not Found';
@@ -37,6 +37,8 @@ class Client
     private $client;
     /** @var Settings */
     private $settings;
+    /** @var bool */
+    private $isAuthenticationAttempted = false;
 
     //////////////////////////// SETTERS AND GETTERS \\\\\\\\\\\\\\\\\\\\\\\\\\\
     /**
@@ -172,17 +174,22 @@ class Client
      *
      * @return array
      */
-    final public function getMetadataFromTree($path, $recursive)
+    final public function getRecursiveMetadata($path, $recursive)
     {
         // If $info['truncated'] is `true`, the number of items in the tree array
         // exceeded the github maximum limit. If you need to fetch more items,
         // multiple calls will be needed
 
-        $info = $this->getTreeInfo($recursive);
-        $treeMetadata = $this->extractMetaDataFromTreeInfo($info, $path, $recursive);
-        $metadata = $this->normalizeTreeMetadata($treeMetadata);
+        $info = $this->getGitDataApi()->trees()->show(
+            $this->settings->getVendor(),
+            $this->settings->getPackage(),
+            $this->settings->getReference(),
+            $recursive
+        );
 
-        return $metadata;
+        $treeMetadata = $this->extractMetaDataFromTreeInfo($info[self::KEY_TREE], $path, $recursive);
+
+        return $this->normalizeTreeMetadata($treeMetadata);
     }
 
     /**
@@ -195,9 +202,6 @@ class Client
         //@NOTE: The github API does not return a MIME type, so we have to guess :-(
         if (strrpos($path, '.') > 1) {
             $extension = substr($path, strrpos($path, '.')+1);
-        }
-
-        if (isset($extension)) {
             $mimeType = MimeType::detectByFileExtension($extension) ?: 'text/plain';
         } else {
             $content = $this->getFileContents($path);
@@ -213,9 +217,7 @@ class Client
      */
     private function authenticate()
     {
-        static $hasRun;
-
-        if ($hasRun === null) {
+        if ($this->isAuthenticationAttempted === false) {
             $credentials = $this->settings->getCredentials();
 
             if (empty($credentials) === false) {
@@ -230,7 +232,7 @@ class Client
                     $credentials[0]
                 );
             }
-            $hasRun = true;
+            $this->isAuthenticationAttempted = true;
         }
     }
 
@@ -267,24 +269,6 @@ class Client
         }
 
         return $metadata;
-    }
-
-    /**
-     * @param bool $recursive
-     * @return \Guzzle\Http\EntityBodyInterface|mixed|string
-     */
-    private function getTreeInfo($recursive)
-    {
-        $trees = $this->getGitDataApi()->trees();
-
-        $info = $trees->show(
-            $this->settings->getVendor(),
-            $this->settings->getPackage(),
-            $this->settings->getReference(),
-            $recursive
-        );
-
-        return $info[self::KEY_TREE];
     }
 
     /**
