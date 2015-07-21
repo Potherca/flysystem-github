@@ -4,50 +4,37 @@ namespace Potherca\Flysystem\Github;
 
 use Github\Client;
 
-class Settings
+class Settings implements SettingsInterface
 {
+    ////////////////////////////// CLASS PROPERTIES \\\\\\\\\\\\\\\\\\\\\\\\\\\\
     const AUTHENTICATE_USING_TOKEN = Client::AUTH_URL_TOKEN;
     const AUTHENTICATE_USING_PASSWORD = Client::AUTH_HTTP_PASSWORD;
 
-    const REFERENCE_HEAD = 'HEAD';
     const BRANCH_MASTER = 'master';
+    const REFERENCE_HEAD = 'HEAD';
+
+    const ERROR_INVALID_REPOSITORY_NAME = 'Given Repository name "%s" should be in the format of "vendor/project"';
 
     /** @var string */
-    private $repository;
-    /** @var string */
-    private $reference = self::REFERENCE_HEAD;
+    private $branch;
     /** @var array */
     private $credentials;
     /** @var string */
-    private $branch = self::BRANCH_MASTER;
+    private $reference;
+    /** @var string */
+    private $repository;
+    /** @var string */
+    private $vendor;
+    /** @var string */
+    private $package;
 
-    final public function __construct(
-        $repository,
-        array $credentials = [],
-        $branch = self::BRANCH_MASTER,
-        $reference = self::REFERENCE_HEAD
-    ) {
-        $this->branch = $branch;
-        $this->credentials = $credentials;
-        $this->reference = $reference;
-        $this->repository = $repository;
-    }
-
-
+    //////////////////////////// SETTERS AND GETTERS \\\\\\\\\\\\\\\\\\\\\\\\\\\
     /**
      * @return string
      */
-    final public function getRepository()
+    final public function getBranch()
     {
-        return $this->repository;
-    }
-
-    /**
-     * @return string
-     */
-    final public function getReference()
-    {
-        return $this->reference;
+        return $this->branch;
     }
 
     /**
@@ -61,9 +48,69 @@ class Settings
     /**
      * @return string
      */
-    final public function getBranch()
+    final public function getPackage()
     {
-        return $this->branch;
+        return $this->package;
+    }
+
+    /**
+     * @return string
+     */
+    final public function getReference()
+    {
+        return $this->reference;
+    }
+
+    /**
+     * @return string
+     */
+    final public function getRepository()
+    {
+        return $this->repository;
+    }
+
+    /**
+     * @return string
+     */
+    final public function getVendor()
+    {
+        return $this->vendor;
+    }
+
+    //////////////////////////////// PUBLIC API \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+    final public function __construct(
+        $repository,
+        array $credentials = [],
+        $branch = self::BRANCH_MASTER,
+        $reference = self::REFERENCE_HEAD
+    ) {
+        $this->isValidRepositoryName($repository);
+
+        $this->branch = (string) $branch;
+        $this->credentials = $credentials;
+        $this->reference = (string) $reference;
+        $this->repository = (string) $repository;
+
+        list($this->vendor, $this->package) = explode('/', $repository);
+    }
+
+    ////////////////////////////// UTILITY METHODS \\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+    /**
+     * @param $repository
+     */
+    private function isValidRepositoryName($repository)
+    {
+        if (is_string($repository) === false
+            || strpos($repository, '/') === false
+            || strpos($repository, '/') === 0
+            || substr_count($repository, '/') !== 1
+        ) {
+            $message = sprintf(
+                self::ERROR_INVALID_REPOSITORY_NAME,
+                var_export($repository, true)
+            );
+            throw new \InvalidArgumentException($message);
+        }
     }
 }
 
