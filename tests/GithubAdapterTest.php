@@ -9,7 +9,7 @@ namespace Potherca\Flysystem\Github;
  * @coversDefaultClass \Potherca\Flysystem\Github\GithubAdapter
  * @covers ::<!public>
  * @covers ::__construct
- * @covers ::getClient
+ * @covers ::getApi
  */
 class GithubAdapterTest extends \PHPUnit_Framework_TestCase
 {
