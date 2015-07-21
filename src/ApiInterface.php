@@ -1,13 +1,8 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: ben
- * Date: 18/07/15
- * Time: 21:36
- */
+
 namespace Potherca\Flysystem\Github;
 
-interface ClientInterface
+interface ApiInterface
 {
     const KEY_CONTENTS = 'contents';
 

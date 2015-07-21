@@ -18,7 +18,7 @@ class GithubAdapterTest extends \PHPUnit_Framework_TestCase
 
     /** @var GithubAdapter  */
     private $adapter;
-    /** @var ClientInterface|\PHPUnit_Framework_MockObject_MockObject */
+    /** @var ApiInterface|\PHPUnit_Framework_MockObject_MockObject */
     private $mockClient;
 
     /**
@@ -26,7 +26,7 @@ class GithubAdapterTest extends \PHPUnit_Framework_TestCase
      */
     protected function setup()
     {
-        $this->mockClient = $this->getMock(ClientInterface::class);
+        $this->mockClient = $this->getMock(ApiInterface::class);
         $this->adapter = new GithubAdapter($this->mockClient);
     }
 
@@ -44,13 +44,13 @@ class GithubAdapterTest extends \PHPUnit_Framework_TestCase
      * @dataProvider provideReadMethods
      *
      * @param $method
-     * @param $clientMethod
+     * @param $apiMethod
      * @param $parameters
      */
-    final public function testAdapterShouldPassParameterToClient($method, $clientMethod, $parameters)
+    final public function testAdapterShouldPassParameterToClient($method, $apiMethod, $parameters)
     {
         $mocker = $this->mockClient->expects($this->exactly(1))
-            ->method($clientMethod);
+            ->method($apiMethod);
 
         $mocker->getMatcher()->parametersMatcher = new \PHPUnit_Framework_MockObject_Matcher_Parameters($parameters);
 

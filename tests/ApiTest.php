@@ -6,48 +6,51 @@ use Github\Api\ApiInterface;
 use Github\Api\GitData\Trees;
 use Github\Api\Repository\Commits;
 use Github\Api\Repository\Contents;
-use Github\Client as GithubClient;
+use Github\Client;
 use Github\Exception\RuntimeException;
 
 /**
- * Tests for the Client class
+ * Tests for the Api class
  *
- * @coversDefaultClass \Potherca\Flysystem\Github\Client
+ * @coversDefaultClass \Potherca\Flysystem\Github\Api
  * @covers ::<!public>
  * @covers ::__construct
  */
-class ClientTest extends \PHPUnit_Framework_TestCase
+class ApiTest extends \PHPUnit_Framework_TestCase
 {
     ////////////////////////////////// FIXTURES \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
     const MOCK_FILE_PATH = '/path/to/mock/file';
     const MOCK_FILE_CONTENTS = 'Mock file contents';
 
-    /** @var Client */
-    private $client;
-    /** @var GithubClient|\PHPUnit_Framework_MockObject_MockObject */
+    /** @var Api */
+    private $api;
+    /** @var Client|\PHPUnit_Framework_MockObject_MockObject */
     private $mockClient;
     /** @var Settings|\PHPUnit_Framework_MockObject_MockObject */
     private $mockSettings;
 
+    /**
+     *
+     */
     protected function setUp()
     {
         $this->mockClient = $this->getMockClient();
         $this->mockSettings = $this->getMockSettings();
 
-        $this->client = new Client($this->mockClient, $this->mockSettings);
+        $this->api = new Api($this->mockClient, $this->mockSettings);
     }
 
     /////////////////////////////////// TESTS \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
     /**
-     * @uses Potherca\Flysystem\Github\Client::exists
+     * @uses Potherca\Flysystem\Github\Api::exists
      */
-    final public function testClientShouldComplainWhenInstantiatedWithoutGithubClient()
+    final public function testApiShouldComplainWhenInstantiatedWithoutClient()
     {
         $message = sprintf(
             'Argument %d passed to %s::__construct() must be an instance of %s',
             1,
-            Client::class,
-            GithubClient::class
+            Api::class,
+            Client::class
         );
 
         $this->setExpectedException(
@@ -56,18 +59,18 @@ class ClientTest extends \PHPUnit_Framework_TestCase
         );
 
         /** @noinspection PhpParamsInspection */
-        new Client();
+        new Api();
     }
 
     /**
      * @coversNothing
      */
-    final public function testClientShouldComplainWhenInstantiatedWithoutSettings()
+    final public function testApiShouldComplainWhenInstantiatedWithoutSettings()
     {
         $message = sprintf(
             'Argument %d passed to %s::__construct() must implement interface %s',
             2,
-            Client::class,
+            Api::class,
             SettingsInterface::class
         );
 
@@ -77,15 +80,15 @@ class ClientTest extends \PHPUnit_Framework_TestCase
         );
 
         /** @noinspection PhpParamsInspection */
-        new Client($this->getMockClient());
+        new Api($this->getMockClient());
     }
 
     /**
      * @covers ::getFileContents
      */
-    final public function testClientShouldUseValuesFromSettingsWhenAskingClientForFileContent()
+    final public function testApiShouldUseValuesFromSettingsWhenAskingClientForFileContent()
     {
-        $client = $this->client;
+        $api = $this->api;
 
         $expected = self::MOCK_FILE_CONTENTS;
 
@@ -101,12 +104,12 @@ class ClientTest extends \PHPUnit_Framework_TestCase
 
         $this->prepareMockApi(
             'download',
-            $client::API_REPO,
+            $api::API_REPO,
             [$mockVendor, $mockPackage, self::MOCK_FILE_PATH, $mockReference],
             $expected
         );
 
-        $actual = $client->getFileContents(self::MOCK_FILE_PATH);
+        $actual = $api->getFileContents(self::MOCK_FILE_PATH);
 
         $this->assertEquals($expected, $actual);
     }
@@ -114,9 +117,9 @@ class ClientTest extends \PHPUnit_Framework_TestCase
     /**
      * @covers ::exists
      */
-    final public function testClientShouldUseValuesFromSettingsWhenAskingClientIfFileExists()
+    final public function testApiShouldUseValuesFromSettingsWhenAskingClientIfFileExists()
     {
-        $client = $this->client;
+        $api = $this->api;
 
         $expected = self::MOCK_FILE_CONTENTS;
 
@@ -132,12 +135,12 @@ class ClientTest extends \PHPUnit_Framework_TestCase
 
         $this->prepareMockApi(
             'exists',
-            $client::API_REPO,
+            $api::API_REPO,
             [$mockVendor, $mockPackage, self::MOCK_FILE_PATH, $mockReference],
             $expected
         );
 
-        $actual = $client->exists(self::MOCK_FILE_PATH);
+        $actual = $api->exists(self::MOCK_FILE_PATH);
 
         $this->assertEquals($expected, $actual);
     }
@@ -145,42 +148,40 @@ class ClientTest extends \PHPUnit_Framework_TestCase
     /**
      * @covers ::getLastUpdatedTimestamp
      */
-    final public function testClientShouldUseValuesFromSettingsWhenAskingClientForLastUpdatedTimestamp()
+    final public function testApiShouldUseValuesFromSettingsWhenAskingClientForLastUpdatedTimestamp()
     {
-        $client = $this->client;
+        $api = $this->api;
 
         $expected = ['timestamp' => 1420070400];
 
         $this->prepareFixturesForTimeStamp();
 
-        $actual = $client->getLastUpdatedTimestamp(self::MOCK_FILE_PATH);
+        $actual = $api->getLastUpdatedTimestamp(self::MOCK_FILE_PATH);
 
         $this->assertEquals($expected, $actual);
     }
 
     /**
      * @covers ::getCreatedTimestamp
-     *
-     * @param Client $client
      */
-    final public function testClientShouldUseValuesFromSettingsWhenAskingClientForCreatedTimestamp()
+    final public function testApiShouldUseValuesFromSettingsWhenAskingClientForCreatedTimestamp()
     {
-        $client = $this->client;
+        $api = $this->api;
 
         $expected = ['timestamp' => 1362268800];
 
         $this->prepareFixturesForTimeStamp();
 
-        $actual = $client->getCreatedTimestamp(self::MOCK_FILE_PATH);
+        $actual = $api->getCreatedTimestamp(self::MOCK_FILE_PATH);
 
         $this->assertEquals($expected, $actual);
     }
     /**
      * @covers ::getMetaData
      */
-    final public function testClientShouldUseValuesFromSettingsWhenAskingClientForFileInfo()
+    final public function testApiShouldUseValuesFromSettingsWhenAskingClientForFileInfo()
     {
-        $client = $this->client;
+        $api = $this->api;
 
         $expected = self::MOCK_FILE_CONTENTS;
 
@@ -196,12 +197,12 @@ class ClientTest extends \PHPUnit_Framework_TestCase
 
         $this->prepareMockApi(
             'show',
-            $client::API_REPO,
+            $api::API_REPO,
             [$mockVendor, $mockPackage, self::MOCK_FILE_PATH, $mockReference],
             $expected
         );
 
-        $actual = $client->getMetaData(self::MOCK_FILE_PATH);
+        $actual = $api->getMetaData(self::MOCK_FILE_PATH);
 
         $this->assertEquals($expected, $actual);
     }
@@ -209,17 +210,17 @@ class ClientTest extends \PHPUnit_Framework_TestCase
     /**
      * @covers ::getMetaData
      */
-    final public function testClientShouldAccountForFileNotExistingWhenAskingInfoForFile()
+    final public function testApiShouldAccountForFileNotExistingWhenAskingInfoForFile()
     {
-        $client = $this->client;
+        $api = $this->api;
 
         $expected = false;
 
         $this->mockClient->expects($this->exactly(1))
         ->method('api')
-        ->willThrowException(new RuntimeException(Client::ERROR_NOT_FOUND));
+        ->willThrowException(new RuntimeException(Api::ERROR_NOT_FOUND));
 
-        $actual = $client->getMetaData(self::MOCK_FILE_PATH);
+        $actual = $api->getMetaData(self::MOCK_FILE_PATH);
 
         $this->assertEquals($expected, $actual);
     }
@@ -227,9 +228,9 @@ class ClientTest extends \PHPUnit_Framework_TestCase
     /**
      * @covers ::getMetaData
      */
-    final public function testClientShouldPassOtherRuntimeExceptionsWhenAskingInfoForFileCausesRuntimeException()
+    final public function testApiShouldPassOtherRuntimeExceptionsWhenAskingInfoForFileCausesRuntimeException()
     {
-        $client = $this->client;
+        $api = $this->api;
 
         $this->setExpectedException(RuntimeException::class, self::MOCK_FILE_CONTENTS);
 
@@ -239,7 +240,7 @@ class ClientTest extends \PHPUnit_Framework_TestCase
         ->method('api')
         ->willThrowException(new RuntimeException(self::MOCK_FILE_CONTENTS));
 
-        $actual = $client->getMetaData(self::MOCK_FILE_PATH);
+        $actual = $api->getMetaData(self::MOCK_FILE_PATH);
 
         $this->assertEquals($expected, $actual);
     }
@@ -247,19 +248,19 @@ class ClientTest extends \PHPUnit_Framework_TestCase
     /**
      * @covers ::getMetaData
      */
-    final public function testClientShouldPassOnExceptionsWhenAskingInfoForFileCausesAnException()
+    final public function testApiShouldPassOnExceptionsWhenAskingInfoForFileCausesAnException()
     {
-        $client = $this->client;
+        $api = $this->api;
 
-        $this->setExpectedException(\RuntimeException::class, Client::ERROR_NOT_FOUND);
+        $this->setExpectedException(\RuntimeException::class, Api::ERROR_NOT_FOUND);
 
         $expected = false;
 
         $this->mockClient->expects($this->exactly(1))
         ->method('api')
-        ->willThrowException(new \RuntimeException(Client::ERROR_NOT_FOUND));
+        ->willThrowException(new \RuntimeException(Api::ERROR_NOT_FOUND));
 
-        $actual = $client->getMetaData(self::MOCK_FILE_PATH);
+        $actual = $api->getMetaData(self::MOCK_FILE_PATH);
 
         $this->assertEquals($expected, $actual);
     }
@@ -274,13 +275,13 @@ class ClientTest extends \PHPUnit_Framework_TestCase
      * @param bool $recursive
      * @param bool $truncated
      */
-    final public function testClientShouldRetrieveExpectedMetadataWhenAskedTogetRecursiveMetadata(
+    final public function testApiShouldRetrieveExpectedMetadataWhenAskedTogetRecursiveMetadata(
         $path,
         $expected,
         $recursive,
         $truncated
     ) {
-        $client = $this->client;
+        $api = $this->api;
 
         $mockVendor = 'vendor';
         $mockPackage = 'package';
@@ -294,13 +295,13 @@ class ClientTest extends \PHPUnit_Framework_TestCase
 
         $this->prepareMockApi(
             'show',
-            $client::API_GIT_DATA,
+            $api::API_GIT_DATA,
             [$mockVendor, $mockPackage, $mockReference, $recursive],
-            $this->getMockApiTreeResponse($truncated, $client),
+            $this->getMockApiTreeResponse($truncated, $api),
             Trees::class
         );
 
-        $actual = $client->getRecursiveMetadata($path, $recursive);
+        $actual = $api->getRecursiveMetadata($path, $recursive);
 
         $this->assertEquals($expected, $actual);
     }
@@ -310,15 +311,15 @@ class ClientTest extends \PHPUnit_Framework_TestCase
      *
      * @uses League\Flysystem\Util\MimeType
      */
-    final public function testClientShouldUseFileExtensionToGuessMimeTypeWhenExtensionIsAvailable()
+    final public function testApiShouldUseFileExtensionToGuessMimeTypeWhenExtensionIsAvailable()
     {
-        $client = $this->client;
+        $api = $this->api;
 
         $expected = 'image/png';
 
         $this->mockClient->expects($this->never())->method('api');
 
-        $actual = $client->guessMimeType(self::MOCK_FILE_PATH.'.png');
+        $actual = $api->guessMimeType(self::MOCK_FILE_PATH.'.png');
 
         $this->assertEquals($expected, $actual);
     }
@@ -328,11 +329,11 @@ class ClientTest extends \PHPUnit_Framework_TestCase
      *
      * @uses League\Flysystem\Util\MimeType
      *
-     * @uses Potherca\Flysystem\Github\Client::getFileContents
+     * @uses Potherca\Flysystem\Github\Api::getFileContents
      */
-    final public function testClientShouldUseFileContentsToGuessMimeTypeWhenExtensionUnavailable()
+    final public function testApiShouldUseFileContentsToGuessMimeTypeWhenExtensionUnavailable()
     {
-        $client = $this->client;
+        $api = $this->api;
 
         $expected = 'image/png';
 
@@ -355,22 +356,22 @@ class ClientTest extends \PHPUnit_Framework_TestCase
 
         $this->prepareMockApi(
             'download',
-            $client::API_REPO,
+            $api::API_REPO,
             [$mockVendor, $mockPackage, self::MOCK_FILE_PATH, $mockReference],
             $contents
         );
 
-        $actual = $client->guessMimeType(self::MOCK_FILE_PATH);
+        $actual = $api->guessMimeType(self::MOCK_FILE_PATH);
 
         $this->assertEquals($expected, $actual);
     }
 
     /**
-     * @uses Potherca\Flysystem\Github\Client::exists
+     * @uses Potherca\Flysystem\Github\Api::exists
      */
-    final public function testClientShouldUseCredentialsWhenTheyHaveBeenGiven()
+    final public function testApiShouldUseCredentialsWhenTheyHaveBeenGiven()
     {
-        $client = $this->client;
+        $api = $this->api;
 
         $mockVendor = 'vendor';
         $mockPackage = 'package';
@@ -385,7 +386,7 @@ class ClientTest extends \PHPUnit_Framework_TestCase
 
         $this->prepareMockApi(
             'exists',
-            $client::API_REPO,
+            $api::API_REPO,
             [$mockVendor, $mockPackage, self::MOCK_FILE_PATH, $mockReference],
             ''
         );
@@ -394,16 +395,16 @@ class ClientTest extends \PHPUnit_Framework_TestCase
             ->method('authenticate')
         ;
 
-        $client->exists(self::MOCK_FILE_PATH);
+        $api->exists(self::MOCK_FILE_PATH);
     }
 
     ////////////////////////////// MOCKS AND STUBS \\\\\\\\\\\\\\\\\\\\\\\\\\\\\
     /**
-     * @return GithubClient|\PHPUnit_Framework_MockObject_MockObject
+     * @return Client|\PHPUnit_Framework_MockObject_MockObject
      */
     private function getMockClient()
     {
-        return $this->getMockBuilder(GithubClient::class)
+        return $this->getMockBuilder(Client::class)
             ->disableOriginalConstructor()
             ->getMock();
     }
@@ -476,13 +477,13 @@ class ClientTest extends \PHPUnit_Framework_TestCase
 
     /**
      * @param $truncated
-     * @param $client
+     * @param $api
      * @return array
      */
-    private function getMockApiTreeResponse($truncated, $client)
+    private function getMockApiTreeResponse($truncated, $api)
     {
         return [
-            $client::KEY_TREE => [
+            $api::KEY_TREE => [
                 [
                     'path' => self::MOCK_FILE_PATH,
                     'mode' => '100644',
@@ -546,7 +547,7 @@ class ClientTest extends \PHPUnit_Framework_TestCase
 
         $this->prepareMockApi(
             'all',
-            Client::API_REPO,
+            Api::API_REPO,
             $apiParameters,
             $apiOutput,
             Commits::class

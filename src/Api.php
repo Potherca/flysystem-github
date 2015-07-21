@@ -4,12 +4,15 @@ namespace Potherca\Flysystem\Github;
 
 use Github\Api\GitData;
 use Github\Api\Repo;
-use Github\Client as GithubClient;
+use Github\Client;
 use Github\Exception\RuntimeException;
 use League\Flysystem\AdapterInterface;
 use League\Flysystem\Util\MimeType;
 
-class Client implements ClientInterface
+/**
+ * Facade class for the Github Api Library
+ */
+class Api implements ApiInterface
 {
     ////////////////////////////// CLASS PROPERTIES \\\\\\\\\\\\\\\\\\\\\\\\\\\\
     const ERROR_NOT_FOUND = 'Not Found';
@@ -33,7 +36,7 @@ class Client implements ClientInterface
     const KEY_VISIBILITY = 'visibility';
     const ERROR_NO_NAME = 'Could not set name for entry';
 
-    /** @var GithubClient */
+    /** @var Client */
     private $client;
     /** @var SettingsInterface */
     private $settings;
@@ -76,7 +79,7 @@ class Client implements ClientInterface
     }
 
     //////////////////////////////// PUBLIC API \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
-    final public function __construct(GithubClient $client, SettingsInterface $settings)
+    final public function __construct(Client $client, SettingsInterface $settings)
     {
         /* @NOTE: If $settings contains `credentials` but not an `author` we are
          * still in `read-only` mode.

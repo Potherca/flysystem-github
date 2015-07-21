@@ -21,23 +21,23 @@ class GithubAdapter extends AbstractAdapter
     const VISIBILITY_PRIVATE = 'private';
     const VISIBILITY_PUBLIC = 'public';
 
-    /** @var ClientInterface */
-    private $client;
+    /** @var ApiInterface */
+    private $api;
 
     /**
-     * @return ClientInterface
+     * @return ApiInterface
      */
-    final public function getClient()
+    final public function getApi()
     {
-        return $this->client;
+        return $this->api;
     }
 
     /**
-     * @param ClientInterface $client
+     * @param ApiInterface $api
      */
-    public function __construct(ClientInterface $client)
+    public function __construct(ApiInterface $api)
     {
-        $this->client = $client;
+        $this->api = $api;
     }
 
     /**
@@ -52,7 +52,7 @@ class GithubAdapter extends AbstractAdapter
     public function write($path, $contents, Config $config)
     {
         throw new Exception('Write action are not (yet) supported');
-        //@TODO: return $this->getClient()->create($path, $contents);
+        //@TODO: return $this->getApi()->create($path, $contents);
     }
 
     /**
@@ -67,7 +67,7 @@ class GithubAdapter extends AbstractAdapter
     public function update($path, $contents, Config $config)
     {
         throw new Exception('Write action are not (yet) supported');
-        // @TODO: return $this->getClient()->update($path, $contents);
+        // @TODO: return $this->getApi()->update($path, $contents);
     }
 
     /**
@@ -81,7 +81,7 @@ class GithubAdapter extends AbstractAdapter
     public function rename($path, $newpath)
     {
         throw new Exception('Write action are not (yet) supported');
-        // @TODO: return $this->getClient()->rename($path, $newPath);
+        // @TODO: return $this->getApi()->rename($path, $newPath);
     }
 
     /**
@@ -95,7 +95,7 @@ class GithubAdapter extends AbstractAdapter
     public function copy($path, $newpath)
     {
         throw new Exception('Write action are not (yet) supported');
-        // @TODO: return $this->getClient()->copy($path, $newPath);
+        // @TODO: return $this->getApi()->copy($path, $newPath);
     }
 
     /**
@@ -108,7 +108,7 @@ class GithubAdapter extends AbstractAdapter
     public function delete($path)
     {
         throw new Exception('Write action are not (yet) supported');
-        // @TODO: return $this->getClient()->delete($path);
+        // @TODO: return $this->getApi()->delete($path);
     }
 
     /**
@@ -121,7 +121,7 @@ class GithubAdapter extends AbstractAdapter
     public function deleteDir($dirname)
     {
         throw new Exception('Write action are not (yet) supported');
-        // @TODO: return $this->getClient()->deleteDir($dirname);
+        // @TODO: return $this->getApi()->deleteDir($dirname);
     }
 
     /**
@@ -135,7 +135,7 @@ class GithubAdapter extends AbstractAdapter
     public function createDir($dirname, Config $config)
     {
         throw new Exception('Write action are not (yet) supported');
-        // @TODO: return $this->getClient()->createDir($dirname);
+        // @TODO: return $this->getApi()->createDir($dirname);
     }
 
     /**
@@ -160,7 +160,7 @@ class GithubAdapter extends AbstractAdapter
      */
     public function has($path)
     {
-        return $this->getClient()->exists($path);
+        return $this->getApi()->exists($path);
     }
 
     /**
@@ -172,7 +172,7 @@ class GithubAdapter extends AbstractAdapter
      */
     public function read($path)
     {
-        return [ClientInterface::KEY_CONTENTS => $this->getClient()->getFileContents($path)];
+        return [ApiInterface::KEY_CONTENTS => $this->getApi()->getFileContents($path)];
     }
 
     /**
@@ -185,7 +185,7 @@ class GithubAdapter extends AbstractAdapter
      */
     public function listContents($path = '/', $recursive = false)
     {
-        return $this->getClient()->getRecursiveMetadata($path, $recursive);
+        return $this->getApi()->getRecursiveMetadata($path, $recursive);
     }
 
     /**
@@ -197,7 +197,7 @@ class GithubAdapter extends AbstractAdapter
      */
     public function getMetadata($path)
     {
-        return $this->getClient()->getMetaData($path);
+        return $this->getApi()->getMetaData($path);
     }
 
     /**
@@ -209,7 +209,7 @@ class GithubAdapter extends AbstractAdapter
      */
     public function getSize($path)
     {
-        return $this->getClient()->getMetaData($path);
+        return $this->getApi()->getMetaData($path);
     }
 
     /**
@@ -221,7 +221,7 @@ class GithubAdapter extends AbstractAdapter
      */
     public function getMimetype($path)
     {
-        return ['mimetype' => $this->getClient()->guessMimeType($path)];
+        return ['mimetype' => $this->getApi()->guessMimeType($path)];
     }
 
     /**
@@ -233,7 +233,7 @@ class GithubAdapter extends AbstractAdapter
      */
     public function getTimestamp($path)
     {
-        return $this->getClient()->getLastUpdatedTimestamp($path);
+        return $this->getApi()->getLastUpdatedTimestamp($path);
     }
 
     /**
@@ -246,7 +246,7 @@ class GithubAdapter extends AbstractAdapter
     public function getVisibility($path)
     {
         $recursive = false;
-        $metadata = $this->getClient()->getRecursiveMetadata($path, $recursive);
+        $metadata = $this->getApi()->getRecursiveMetadata($path, $recursive);
         return $metadata[0];
     }
 }
