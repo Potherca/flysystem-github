@@ -13,7 +13,7 @@ and [Semantic Versioning](http://semver.org/) conventions.
 ### Security
 -->
 
-## v0.2.0 - 2015-07-21 - Improvements and UnitTests
+## [v0.2.0] - 2015-07-21 - Improvements and UnitTests
 
 ### Added
 - Adds automated checks (a.k.a. unit-tests) for the Adapter, Client and Settings classes. 
@@ -23,7 +23,7 @@ and [Semantic Versioning](http://semver.org/) conventions.
 - Makes the PHPUnit configuration more strict
 - Renames the Client class to "Api"
 
-## v0.1.0 - 2015-07-18 - Read functionality
+## [v0.1.0] - 2015-07-18 - Read functionality
 
 ### Added
 - Read functionality and Github API authentication have been implemented.
@@ -36,7 +36,7 @@ Contributing guidelines, Composer file stating dependencies, MIT License, README
 file and this CHANGELOG file.
 
 [unreleased]: https://github.com/potherca/flystystem-github/compare/v0.2.0...HEAD
-[0.2.0]: https://github.com/potherca/flystystem-github/compare/v0.1.0...v0.2.0
-[0.1.0]: https://github.com/potherca/flystystem-github/compare/v0.0.0...v0.1.0
+[v0.2.0]: https://github.com/potherca/flystystem-github/compare/v0.1.0...v0.2.0
+[v0.1.0]: https://github.com/potherca/flystystem-github/compare/v0.0.0...v0.1.0
 [keep-a-changelog]: http://keepachangelog.com/
 [Semantic Versioning]: http://semver.org/
