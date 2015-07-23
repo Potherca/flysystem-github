@@ -101,9 +101,9 @@ class Settings implements SettingsInterface
     private function isValidRepositoryName($repository)
     {
         if (is_string($repository) === false
-            || strpos($repository, '/') === false
-            || strpos($repository, '/') === 0
             || substr_count($repository, '/') !== 1
+            || substr($repository, 0, 1) === '/'
+            || substr($repository, -1, 1) === '/'
         ) {
             $message = sprintf(
                 self::ERROR_INVALID_REPOSITORY_NAME,

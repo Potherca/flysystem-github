@@ -226,6 +226,8 @@ class SettingsTest extends \PHPUnit_Framework_TestCase
             [array()],
             ['foo'],
             ['/foo'],
+            ['foo/'],
+            ['foo//bar'],
             ['foo/bar/'],
             ['/foo/bar/'],
             ['foo/bar/baz'],
