@@ -19,5 +19,6 @@ install:
 script:
   - vendor/bin/phpunit --configuration build/phpunit.xml && cat build/testdox.txt build/coverage.txt
 
-after_script:
+after_success:
+  - bash <(curl -s https://codecov.io/bash)
   - php vendor/bin/coveralls -v
