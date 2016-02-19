@@ -269,17 +269,9 @@ class ApiTest extends \PHPUnit_Framework_TestCase
      *
      * @dataProvider provideExpectedMetadata
      *
-     * @param string $path
-     * @param array $expected
-     * @param bool $recursive
-     * @param bool $truncated
+     * @param array $data
      */
-    final public function testApiShouldRetrieveExpectedMetadataWhenAskedToGetRecursiveMetadata(
-        $path,
-        $expected,
-        $recursive,
-        $truncated
-    ) {
+    final public function testApiShouldRetrieveExpectedMetadataWhenAskedToGetRecursiveMetadata($data) {
         $api = $this->api;
 
         $mockVendor = 'vendor';
@@ -295,14 +287,14 @@ class ApiTest extends \PHPUnit_Framework_TestCase
         $this->prepareMockApi(
             'show',
             $api::API_GIT_DATA,
-            [$mockVendor, $mockPackage, $mockReference, $recursive],
-            $this->getMockApiTreeResponse($truncated, $api),
+            [$mockVendor, $mockPackage, $mockReference, $data['recursive']],
+            $this->getMockApiTreeResponse($data['truncated'], $api),
             Trees::class
         );
 
-        $actual = $api->getRecursiveMetadata($path, $recursive);
+        $actual = $api->getRecursiveMetadata($data['path'], $data['recursive']);
 
-        self::assertEquals($expected, $actual);
+        self::assertEquals($data['expected'], $actual);
     }
 
     /**
@@ -565,9 +557,9 @@ class ApiTest extends \PHPUnit_Framework_TestCase
     final public  function provideExpectedMetadata()
     {
         return [
-            'Filepath, not recursive, not truncated' => [
-                self::MOCK_FILE_PATH,
-                [
+            'Filepath, not recursive, not truncated' => [[
+                'path' => self::MOCK_FILE_PATH,
+                'expected' => [
                     [
                         'path' => '/path/to/mock/file',
                         'mode' => 100644,
@@ -592,12 +584,83 @@ class ApiTest extends \PHPUnit_Framework_TestCase
                         'visibility' => 'public'
                     ]
                 ],
-                false,
-                false
-            ],
-            'Filepath, recursive, not truncated' => [
-                self::MOCK_FILE_PATH,
-                [
+                'recursive' => false,
+                'truncated' => false
+            ]],
+            'Filepath, recursive, not truncated' => [[
+                'path' => self::MOCK_FILE_PATH,
+                'expected' => [
+                    [
+                        'path' => '/path/to/mock/file',
+                        'mode' => 100644,
+                        'type' => 'dir',
+                        'size' => 57,
+                        'name' => '/path/to/mock/file',
+                        'contents' => null,
+                        'stream' => null,
+                        'timestamp' => null,
+                        'visibility' => 'public'
+                    ],
+                    [
+                        'path' => '/path/to/mock/fileFoo',
+                        'basename' => '/path/to/mock/fileFoo',
+                        'mode' => 100644,
+                        'type' => 'file',
+                        'size' => 57,
+                        'name' => '/path/to/mock/fileFoo',
+                        'contents' => null,
+                        'stream' => null,
+                        'timestamp' => null,
+                        'visibility' => 'public'
+                    ],
+                    [
+                        'path' => '/path/to/mock/file/Bar',
+                        'mode' => 100644,
+                        'type' => 'file',
+                        'size' => 57,
+                        'name' => '/path/to/mock/file/Bar',
+                        'contents' => null,
+                        'stream' => null,
+                        'timestamp' => null,
+                        'visibility' => 'public'
+                    ]
+                ],
+                'recursive' => true,
+                'truncated' => false
+            ]],
+            'Filepath, not recursive, truncated' => [[
+                'path' => self::MOCK_FILE_PATH,
+                'expected' => [
+                    [
+                        'path' => '/path/to/mock/file',
+                        'mode' => 100644,
+                        'type' => 'dir',
+                        'size' => 57,
+                        'name' => '/path/to/mock/file',
+                        'contents' => null,
+                        'stream' => null,
+                        'timestamp' => null,
+                        'visibility' => 'public'
+                    ],
+                    [
+                        'path' => '/path/to/mock/fileFoo',
+                        'basename' => '/path/to/mock/fileFoo',
+                        'mode' => 100644,
+                        'type' => 'file',
+                        'size' => 57,
+                        'name' => '/path/to/mock/fileFoo',
+                        'contents' => null,
+                        'stream' => null,
+                        'timestamp' => null,
+                        'visibility' => 'public'
+                    ]
+                ],
+                'recursive' => false,
+                'truncated' => true
+            ]],
+            'Filepath, recursive, truncated' => [[
+                'path' => self::MOCK_FILE_PATH,
+                'expected' => [
                     [
                         'path' => '/path/to/mock/file',
                         'mode' => 100644,
@@ -633,94 +696,12 @@ class ApiTest extends \PHPUnit_Framework_TestCase
                         'visibility' => 'public'
                     ]
                 ],
-                true,
-                false
-            ],
-            'Filepath, not recursive, truncated' => [
-                self::MOCK_FILE_PATH,
-                [
-                    [
-                        'path' => '/path/to/mock/file',
-                        'mode' => 100644,
-                        'type' => 'dir',
-                        'size' => 57,
-                        'name' => '/path/to/mock/file',
-                        'contents' => null,
-                        'stream' => null,
-                        'timestamp' => null,
-                        'visibility' => 'public'
-                    ],
-                    [
-                        'path' => '/path/to/mock/fileFoo',
-                        'basename' => '/path/to/mock/fileFoo',
-                        'mode' => 100644,
-                        'type' => 'file',
-                        'size' => 57,
-                        'name' => '/path/to/mock/fileFoo',
-                        'contents' => null,
-                        'stream' => null,
-                        'timestamp' => null,
-                        'visibility' => 'public'
-                    ]
-                ],
-                false,
-                true
-            ],
-            'No Filepath, recursive, not truncated' => [
-                '',
-                [
-                    [
-                        'path' => '/path/to/mock/file',
-                        'mode' => 100644,
-                        'type' => 'dir',
-                        'size' => 57,
-                        'name' => '/path/to/mock/file',
-                        'contents' => null,
-                        'stream' => null,
-                        'timestamp' => null,
-                        'visibility' => 'public'
-                    ],
-                    [
-                        'path' => '/path/to/mock/fileFoo',
-                        'basename' => '/path/to/mock/fileFoo',
-                        'mode' => 100644,
-                        'type' => 'file',
-                        'size' => 57,
-                        'name' => '/path/to/mock/fileFoo',
-                        'contents' => null,
-                        'stream' => null,
-                        'timestamp' => null,
-                        'visibility' => 'public'
-                    ],
-                    [
-                        'path' => '/path/to/mock/file/Bar',
-                        'mode' => 100644,
-                        'type' => 'file',
-                        'size' => 57,
-                        'name' => '/path/to/mock/file/Bar',
-                        'contents' => null,
-                        'stream' => null,
-                        'timestamp' => null,
-                        'visibility' => 'public'
-                    ],
-                    [
-                        'path' => 'some/other/file',
-                        'mode' => 100644,
-                        'type' => 'file',
-                        'size' => 747,
-                        'name' => 'some/other/file',
-                        'contents' => null,
-                        'stream' => null,
-                        'timestamp' => null,
-                        'visibility' => 'public'
-                    ]
-                ],
-                true,
-                false
-            ],
-            'No Filepath, recursive, truncated' => [
-                '',
-                [
+                'recursive' => true,
+                'truncated' => true
+            ]],
+            'No Filepath, recursive, not truncated' => [[
+                'path' => '',
+                'expected' => [
                     [
                         'path' => '/path/to/mock/file',
                         'mode' => 100644,
@@ -767,12 +748,64 @@ class ApiTest extends \PHPUnit_Framework_TestCase
                         'visibility' => 'public'
                     ]
                 ],
-                true,
-                true
-            ],
-            'No Filepath, not recursive, truncated' => [
-                '',
-                [
+                'recursive' => true,
+                'truncated' => false
+            ]],
+            'No Filepath, recursive, truncated' => [[
+                'path' => '',
+                'expected' => [
+                    [
+                        'path' => '/path/to/mock/file',
+                        'mode' => 100644,
+                        'type' => 'dir',
+                        'size' => 57,
+                        'name' => '/path/to/mock/file',
+                        'contents' => null,
+                        'stream' => null,
+                        'timestamp' => null,
+                        'visibility' => 'public'
+                    ],
+                    [
+                        'path' => '/path/to/mock/fileFoo',
+                        'basename' => '/path/to/mock/fileFoo',
+                        'mode' => 100644,
+                        'type' => 'file',
+                        'size' => 57,
+                        'name' => '/path/to/mock/fileFoo',
+                        'contents' => null,
+                        'stream' => null,
+                        'timestamp' => null,
+                        'visibility' => 'public'
+                    ],
+                    [
+                        'path' => '/path/to/mock/file/Bar',
+                        'mode' => 100644,
+                        'type' => 'file',
+                        'size' => 57,
+                        'name' => '/path/to/mock/file/Bar',
+                        'contents' => null,
+                        'stream' => null,
+                        'timestamp' => null,
+                        'visibility' => 'public'
+                    ],
+                    [
+                        'path' => 'some/other/file',
+                        'mode' => 100644,
+                        'type' => 'file',
+                        'size' => 747,
+                        'name' => 'some/other/file',
+                        'contents' => null,
+                        'stream' => null,
+                        'timestamp' => null,
+                        'visibility' => 'public'
+                    ]
+                ],
+                'recursive' => true,
+                'truncated' => true
+            ]],
+            'No Filepath, not recursive, truncated' => [[
+                'path' => '',
+                'expected' => [
                     [
                         'name' => null,
                         'visibility' => null,
@@ -781,12 +814,12 @@ class ApiTest extends \PHPUnit_Framework_TestCase
                         'timestamp' => null
                     ]
                 ],
-                false,
-                true
-            ],
-            'No Filepath, not recursive, not truncated' => [
-                '',
-                [
+                'recursive' => false,
+                'truncated' => true
+            ]],
+            'No Filepath, not recursive, not truncated' => [[
+                'path' => '',
+                'expected' => [
                     [
                         'name' => null,
                         'visibility' => null,
@@ -795,9 +828,9 @@ class ApiTest extends \PHPUnit_Framework_TestCase
                         'timestamp' => null,
                     ]
                 ],
-                false,
-                false
-            ],
+                'recursive' => false,
+                'truncated' => false
+            ]],
         ];
     }
 }
