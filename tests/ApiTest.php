@@ -53,10 +53,8 @@ class ApiTest extends \PHPUnit_Framework_TestCase
             Client::class
         );
 
-        $this->setExpectedException(
-            \PHPUnit_Framework_Error::class,
-            $message
-        );
+        $this->expectException(\PHPUnit_Framework_Error::class);
+        $this->expectExceptionMessage($message);
 
         /** @noinspection PhpParamsInspection */
         new Api();
@@ -74,10 +72,8 @@ class ApiTest extends \PHPUnit_Framework_TestCase
             SettingsInterface::class
         );
 
-        $this->setExpectedException(
-            \PHPUnit_Framework_Error::class,
-            $message
-        );
+        $this->expectException(\PHPUnit_Framework_Error::class);
+        $this->expectExceptionMessage($message);
 
         /** @noinspection PhpParamsInspection */
         new Api($this->getMockClient());
@@ -111,7 +107,7 @@ class ApiTest extends \PHPUnit_Framework_TestCase
 
         $actual = $api->getFileContents(self::MOCK_FILE_PATH);
 
-        $this->assertEquals($expected, $actual);
+        self::assertEquals($expected, $actual);
     }
 
     /**
@@ -142,7 +138,7 @@ class ApiTest extends \PHPUnit_Framework_TestCase
 
         $actual = $api->exists(self::MOCK_FILE_PATH);
 
-        $this->assertEquals($expected, $actual);
+        self::assertEquals($expected, $actual);
     }
 
     /**
@@ -158,7 +154,7 @@ class ApiTest extends \PHPUnit_Framework_TestCase
 
         $actual = $api->getLastUpdatedTimestamp(self::MOCK_FILE_PATH);
 
-        $this->assertEquals($expected, $actual);
+        self::assertEquals($expected, $actual);
     }
 
     /**
@@ -174,8 +170,9 @@ class ApiTest extends \PHPUnit_Framework_TestCase
 
         $actual = $api->getCreatedTimestamp(self::MOCK_FILE_PATH);
 
-        $this->assertEquals($expected, $actual);
+        self::assertEquals($expected, $actual);
     }
+
     /**
      * @covers ::getMetaData
      */
@@ -204,7 +201,7 @@ class ApiTest extends \PHPUnit_Framework_TestCase
 
         $actual = $api->getMetaData(self::MOCK_FILE_PATH);
 
-        $this->assertEquals($expected, $actual);
+        self::assertEquals($expected, $actual);
     }
 
     /**
@@ -216,13 +213,13 @@ class ApiTest extends \PHPUnit_Framework_TestCase
 
         $expected = false;
 
-        $this->mockClient->expects($this->exactly(1))
+        $this->mockClient->expects(self::exactly(1))
         ->method('api')
         ->willThrowException(new RuntimeException(Api::ERROR_NOT_FOUND));
 
         $actual = $api->getMetaData(self::MOCK_FILE_PATH);
 
-        $this->assertEquals($expected, $actual);
+        self::assertEquals($expected, $actual);
     }
 
     /**
@@ -232,17 +229,18 @@ class ApiTest extends \PHPUnit_Framework_TestCase
     {
         $api = $this->api;
 
-        $this->setExpectedException(RuntimeException::class, self::MOCK_FILE_CONTENTS);
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage(self::MOCK_FILE_CONTENTS);
 
         $expected = false;
 
-        $this->mockClient->expects($this->exactly(1))
+        $this->mockClient->expects(self::exactly(1))
         ->method('api')
         ->willThrowException(new RuntimeException(self::MOCK_FILE_CONTENTS));
 
         $actual = $api->getMetaData(self::MOCK_FILE_PATH);
 
-        $this->assertEquals($expected, $actual);
+        self::assertEquals($expected, $actual);
     }
 
     /**
@@ -252,17 +250,18 @@ class ApiTest extends \PHPUnit_Framework_TestCase
     {
         $api = $this->api;
 
-        $this->setExpectedException(\RuntimeException::class, Api::ERROR_NOT_FOUND);
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage(Api::ERROR_NOT_FOUND);
 
         $expected = false;
 
-        $this->mockClient->expects($this->exactly(1))
+        $this->mockClient->expects(self::exactly(1))
         ->method('api')
         ->willThrowException(new \RuntimeException(Api::ERROR_NOT_FOUND));
 
         $actual = $api->getMetaData(self::MOCK_FILE_PATH);
 
-        $this->assertEquals($expected, $actual);
+        self::assertEquals($expected, $actual);
     }
 
     /**
@@ -275,7 +274,7 @@ class ApiTest extends \PHPUnit_Framework_TestCase
      * @param bool $recursive
      * @param bool $truncated
      */
-    final public function testApiShouldRetrieveExpectedMetadataWhenAskedTogetRecursiveMetadata(
+    final public function testApiShouldRetrieveExpectedMetadataWhenAskedToGetRecursiveMetadata(
         $path,
         $expected,
         $recursive,
@@ -303,7 +302,7 @@ class ApiTest extends \PHPUnit_Framework_TestCase
 
         $actual = $api->getRecursiveMetadata($path, $recursive);
 
-        $this->assertEquals($expected, $actual);
+        self::assertEquals($expected, $actual);
     }
 
     /**
@@ -317,11 +316,11 @@ class ApiTest extends \PHPUnit_Framework_TestCase
 
         $expected = 'image/png';
 
-        $this->mockClient->expects($this->never())->method('api');
+        $this->mockClient->expects(self::never())->method('api');
 
         $actual = $api->guessMimeType(self::MOCK_FILE_PATH.'.png');
 
-        $this->assertEquals($expected, $actual);
+        self::assertEquals($expected, $actual);
     }
 
     /**
@@ -363,7 +362,7 @@ class ApiTest extends \PHPUnit_Framework_TestCase
 
         $actual = $api->guessMimeType(self::MOCK_FILE_PATH);
 
-        $this->assertEquals($expected, $actual);
+        self::assertEquals($expected, $actual);
     }
 
     /**
@@ -391,7 +390,7 @@ class ApiTest extends \PHPUnit_Framework_TestCase
             ''
         );
 
-        $this->mockClient->expects($this->exactly(1))
+        $this->mockClient->expects(self::exactly(1))
             ->method('authenticate')
         ;
 
@@ -425,8 +424,13 @@ class ApiTest extends \PHPUnit_Framework_TestCase
      * @param mixed $apiOutput
      * @param string $repositoryClass
      */
-    private function prepareMockApi($method, $apiName, $apiParameters, $apiOutput, $repositoryClass = Contents::class)
-    {
+    private function prepareMockApi(
+        $method,
+        $apiName,
+        $apiParameters,
+        $apiOutput,
+        $repositoryClass = Contents::class
+    ) {
 
         $parts = explode('\\', $repositoryClass);
         $repositoryName = strtolower(array_pop($parts));
@@ -441,21 +445,21 @@ class ApiTest extends \PHPUnit_Framework_TestCase
             ->getMock()
         ;
 
-        $mockRepository->expects($this->exactly(1))
+        $mockRepository->expects(self::exactly(1))
             ->method($method)
             ->withAnyParameters()
             ->willReturnCallback(function () use ($apiParameters, $apiOutput) {
-                $this->assertEquals($apiParameters, func_get_args());
+                self::assertEquals($apiParameters, func_get_args());
                 return $apiOutput;
             })
         ;
 
-        $mockApi->expects($this->exactly(1))
+        $mockApi->expects(self::exactly(1))
             ->method($repositoryName)
             ->willReturn($mockRepository)
         ;
 
-        $this->mockClient->expects($this->exactly(1))
+        $this->mockClient->expects(self::exactly(1))
             ->method('api')
             ->with($apiName)
             ->willReturn($mockApi)
@@ -468,7 +472,7 @@ class ApiTest extends \PHPUnit_Framework_TestCase
     private function prepareMockSettings(array $expectations)
     {
         foreach ($expectations as $methodName => $returnValue) {
-            $this->mockSettings->expects($this->exactly(1))
+            $this->mockSettings->expects(self::exactly(1))
                 ->method($methodName)
                 ->willReturn($returnValue)
             ;
