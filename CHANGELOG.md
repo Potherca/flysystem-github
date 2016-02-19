@@ -35,8 +35,8 @@ and [Semantic Versioning](http://semver.org/) conventions.
 Contributing guidelines, Composer file stating dependencies, MIT License, README 
 file and this CHANGELOG file.
 
-[unreleased]: https://github.com/potherca/flystystem-github/compare/v0.2.0...HEAD
-[v0.2.0]: https://github.com/potherca/flystystem-github/compare/v0.1.0...v0.2.0
-[v0.1.0]: https://github.com/potherca/flystystem-github/compare/v0.0.0...v0.1.0
+[unreleased]: https://github.com/potherca/flysystem-github/compare/v0.2.0...HEAD
+[v0.2.0]: https://github.com/potherca/flysystem-github/compare/v0.1.0...v0.2.0
+[v0.1.0]: https://github.com/potherca/flysystem-github/compare/v0.0.0...v0.1.0
 [keep-a-changelog]: http://keepachangelog.com/
 [Semantic Versioning]: http://semver.org/
