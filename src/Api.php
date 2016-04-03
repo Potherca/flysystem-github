@@ -372,7 +372,7 @@ class Api implements ApiInterface
      */
     private function setDefaultValue(array &$entry, $key, $default = false)
     {
-        if (isset($entry[$key]) === false) {
+        if ($this->hasKey($entry, $key) === false) {
             $entry[$key] = $default;
         }
     }
@@ -382,7 +382,7 @@ class Api implements ApiInterface
      */
     private function setEntryType(&$entry)
     {
-        if (isset($entry[self::KEY_TYPE]) === true) {
+        if ($this->hasKey($entry, self::KEY_TYPE) === true) {
             switch ($entry[self::KEY_TYPE]) {
                 case self::KEY_BLOB:
                     $entry[self::KEY_TYPE] = self::KEY_FILE;
@@ -400,7 +400,7 @@ class Api implements ApiInterface
      */
     private function setEntryVisibility(&$entry)
     {
-        if (isset($entry[self::KEY_MODE])) {
+        if ($this->hasKey($entry, self::KEY_MODE)) {
             $entry[self::KEY_VISIBILITY] = $this->guessVisibility($entry[self::KEY_MODE]);
         } else {
             $entry[self::KEY_VISIBILITY] = false;
@@ -412,14 +412,25 @@ class Api implements ApiInterface
      */
     private function setEntryName(&$entry)
     {
-        if (isset($entry[self::KEY_NAME]) === false) {
-            if (isset($entry[self::KEY_FILENAME]) === true) {
+        if ($this->hasKey($entry, self::KEY_NAME) === false) {
+            if ($this->hasKey($entry, self::KEY_FILENAME) === true) {
                 $entry[self::KEY_NAME] = $entry[self::KEY_FILENAME];
-            } elseif (isset($entry[self::KEY_PATH]) === true) {
+            } elseif ($this->hasKey($entry, self::KEY_PATH) === true) {
                 $entry[self::KEY_NAME] = $entry[self::KEY_PATH];
             } else {
                 $entry[self::KEY_NAME] = null;
             }
         }
+    }
+
+    /**
+     * @param $subject
+     * @param $key
+     * @return mixed
+     */
+    private function hasKey(&$subject, $key)
+    {
+        /** @noinspection ReferenceMismatchInspection */
+        return array_key_exists($key, $subject);
     }
 }
