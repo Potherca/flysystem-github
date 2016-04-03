@@ -309,7 +309,10 @@ class Api implements ApiInterface
      */
     private function guessVisibility($permissions)
     {
-        return $permissions & 0044 ? AdapterInterface::VISIBILITY_PUBLIC : AdapterInterface::VISIBILITY_PRIVATE;
+        return ($permissions & 0044)
+            ? AdapterInterface::VISIBILITY_PUBLIC
+            : AdapterInterface::VISIBILITY_PRIVATE
+        ;
     }
 
     /**
