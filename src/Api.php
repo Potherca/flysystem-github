@@ -15,6 +15,7 @@ use League\Flysystem\Util\MimeType;
 class Api implements ApiInterface
 {
     ////////////////////////////// CLASS PROPERTIES \\\\\\\\\\\\\\\\\\\\\\\\\\\\
+    const ERROR_NO_NAME = 'Could not set name for entry';
     const ERROR_NOT_FOUND = 'Not Found';
 
     const API_GIT_DATA = 'git';
@@ -34,7 +35,9 @@ class Api implements ApiInterface
     const KEY_TREE = 'tree';
     const KEY_TYPE = 'type';
     const KEY_VISIBILITY = 'visibility';
-    const ERROR_NO_NAME = 'Could not set name for entry';
+    
+    const GITHUB_API_URL = 'https://api.github.com';
+    const GITHUB_URL = 'https://github.com';
 
     /** @var Client */
     private $client;
@@ -192,6 +195,25 @@ class Api implements ApiInterface
             } else {
                 throw $exception;
             }
+        }
+
+        if (is_array($metadata) === true && $this->isMetadataForDirectory($metadata) === true) {
+            /** @var $metadata array */
+            $project = sprintf('%s/%s', $this->settings->getVendor(), $this->settings->getPackage());
+            $reference = $this->settings->getReference();
+
+            $url = sprintf('%s/repos/%s/contents/%s?ref=%s', self::GITHUB_API_URL, $project, $path, $reference);
+            $htmlUrl = sprintf('%s/%s/blob/%s/%s', self::GITHUB_URL, $project, $reference, $path);
+
+            $metadata = [
+                self::KEY_TYPE => self::KEY_DIRECTORY,
+                'url' => $url,
+                'html_url' => $htmlUrl,
+                '_links' => [
+                    'self' => $url,
+                    'html' => $htmlUrl
+                ]
+            ];
         }
 
         return $metadata;
@@ -421,6 +443,23 @@ class Api implements ApiInterface
                 $entry[self::KEY_NAME] = null;
             }
         }
+    }
+
+    /**
+     * @param $metadata
+     * @return bool
+     */
+    private function isMetadataForDirectory($metadata)
+    {
+        $isDirectory = false;
+
+        $keys = array_keys($metadata);
+
+        if ($keys[0] === 0) {
+            $isDirectory = true;
+        }
+
+        return $isDirectory;
     }
 
     /**
