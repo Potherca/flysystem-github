@@ -46,7 +46,10 @@ class Api implements ApiInterface
     //////////////////////////// SETTERS AND GETTERS \\\\\\\\\\\\\\\\\\\\\\\\\\\
     /**
      * @param string $name
+     *
      * @return \Github\Api\ApiInterface
+     *
+     * @throws \Github\Exception\InvalidArgumentException
      */
     private function getApi($name)
     {
@@ -56,6 +59,8 @@ class Api implements ApiInterface
 
     /**
      * @return GitData
+     *
+     * @throws \Github\Exception\InvalidArgumentException
      */
     private function getGitDataApi()
     {
@@ -64,6 +69,8 @@ class Api implements ApiInterface
 
     /**
      * @return Repo
+     *
+     * @throws \Github\Exception\InvalidArgumentException
      */
     private function getRepositoryApi()
     {
@@ -72,6 +79,8 @@ class Api implements ApiInterface
 
     /**
      * @return \Github\Api\Repository\Contents
+     *
+     * @throws \Github\Exception\InvalidArgumentException
      */
     private function getRepositoryContent()
     {
@@ -93,6 +102,8 @@ class Api implements ApiInterface
      * @param string $path
      *
      * @return bool
+     *
+     * @throws \Github\Exception\InvalidArgumentException
      */
     final public function exists($path)
     {
@@ -108,6 +119,7 @@ class Api implements ApiInterface
      * @param $path
      *
      * @return null|string
+     * @throws \Github\Exception\InvalidArgumentException
      *
      * @throws \Github\Exception\ErrorException
      */
@@ -125,6 +137,8 @@ class Api implements ApiInterface
      * @param string $path
      *
      * @return array
+     *
+     * @throws \Github\Exception\InvalidArgumentException
      */
     final public function getLastUpdatedTimestamp($path)
     {
@@ -141,6 +155,8 @@ class Api implements ApiInterface
      * @param string $path
      *
      * @return array
+     *
+     * @throws \Github\Exception\InvalidArgumentException
      */
     final public function getCreatedTimestamp($path)
     {
@@ -157,6 +173,9 @@ class Api implements ApiInterface
      * @param string $path
      *
      * @return array|bool
+     *
+     * @throws \Github\Exception\InvalidArgumentException
+     * @throws \Github\Exception\RuntimeException
      */
     final public function getMetaData($path)
     {
@@ -183,6 +202,7 @@ class Api implements ApiInterface
      * @param bool $recursive
      *
      * @return array
+     * @throws \Github\Exception\InvalidArgumentException
      */
     final public function getRecursiveMetadata($path, $recursive)
     {
@@ -208,6 +228,9 @@ class Api implements ApiInterface
      * @param string $path
      *
      * @return null|string
+     *
+     * @throws \Github\Exception\ErrorException
+     * @throws \Github\Exception\InvalidArgumentException
      */
     final public function guessMimeType($path)
     {
@@ -226,6 +249,7 @@ class Api implements ApiInterface
     ////////////////////////////// UTILITY METHODS \\\\\\\\\\\\\\\\\\\\\\\\\\\\\
     /**
      *
+     * @throws \Github\Exception\InvalidArgumentException If no authentication method was given
      */
     private function authenticate()
     {
@@ -321,6 +345,8 @@ class Api implements ApiInterface
      * @param $path
      *
      * @return array
+     *
+     * @throws \Github\Exception\InvalidArgumentException
      */
     private function commitsForFile($path)
     {
