@@ -169,6 +169,8 @@ class GithubAdapter extends AbstractAdapter
      * @param string $path
      *
      * @return array|false
+     *
+     * @throws \Github\Exception\ErrorException
      */
     public function read($path)
     {
@@ -185,7 +187,13 @@ class GithubAdapter extends AbstractAdapter
      */
     public function listContents($path = '/', $recursive = false)
     {
-        return $this->getApi()->getRecursiveMetadata($path, $recursive);
+        $contents = $this->getApi()->getRecursiveMetadata($path, $recursive);
+
+        if ($this->isDirectoryContents($contents) === false) {
+            $contents = [];
+        }
+
+        return $contents;
     }
 
     /**
@@ -248,6 +256,23 @@ class GithubAdapter extends AbstractAdapter
         $recursive = false;
         $metadata = $this->getApi()->getRecursiveMetadata($path, $recursive);
         return $metadata[0];
+    }
+
+    /**
+     * @param $contents
+     * @return bool
+     */
+    private function isDirectoryContents($contents)
+    {
+        $isDirectory = false;
+
+        if (is_array($contents)) {
+            $isDirectory = array_key_exists(Api::KEY_TYPE, $contents) === false
+                || $contents[Api::KEY_TYPE] === Api::KEY_DIRECTORY
+            ;
+        }
+
+        return $isDirectory;
     }
 }
 
