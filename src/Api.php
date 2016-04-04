@@ -324,7 +324,7 @@ class Api implements ApiInterface
             return $match;
         });
 
-        return $metadata;
+        return array_values($metadata);
     }
 
     /**
