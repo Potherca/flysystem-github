@@ -333,10 +333,13 @@ class Api implements ApiInterface
      */
     private function guessVisibility($permissions)
     {
-        return ($permissions & 0044)
-            ? AdapterInterface::VISIBILITY_PUBLIC
-            : AdapterInterface::VISIBILITY_PRIVATE
-        ;
+        $visibility = AdapterInterface::VISIBILITY_PUBLIC;
+
+        if (! substr($permissions, -4) & 0044) {
+            $visibility = AdapterInterface::VISIBILITY_PRIVATE;
+        }
+
+        return $visibility;
     }
 
     /**
@@ -427,7 +430,8 @@ class Api implements ApiInterface
         if ($this->hasKey($entry, self::KEY_MODE)) {
             $entry[self::KEY_VISIBILITY] = $this->guessVisibility($entry[self::KEY_MODE]);
         } else {
-            $entry[self::KEY_VISIBILITY] = false;
+            /* Assume public by default */
+            $entry[self::KEY_VISIBILITY] = GithubAdapter::VISIBILITY_PUBLIC;
         }
     }
 
