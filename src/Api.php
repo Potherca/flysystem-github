@@ -475,7 +475,13 @@ class Api implements ApiInterface
      */
     private function hasKey(&$subject, $key)
     {
+        $keyExists = false;
+
+        if (is_array($subject)) {
         /** @noinspection ReferenceMismatchInspection */
-        return array_key_exists($key, $subject);
+            $keyExists = array_key_exists($key, $subject);
+        }
+
+        return $keyExists;
     }
 }
