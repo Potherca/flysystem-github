@@ -253,13 +253,15 @@ class Api implements ApiInterface
      *
      * @throws \Github\Exception\ErrorException
      * @throws \Github\Exception\InvalidArgumentException
+     * @throws \Github\Exception\RuntimeException
      */
     final public function guessMimeType($path)
     {
         //@NOTE: The github API does not return a MIME type, so we have to guess :-(
-        if (strrpos($path, '.') > 1) {
-            $extension = substr($path, strrpos($path, '.')+1);
-            $mimeType = MimeType::detectByFileExtension($extension) ?: 'text/plain';
+        $meta = $this->getMetaData($path);
+
+        if ($this->hasKey($meta, self::KEY_TYPE) && $meta[self::KEY_TYPE] === self::KEY_DIRECTORY) {
+            $mimeType = 'directory'; //application/x-directory
         } else {
             $content = $this->getFileContents($path);
             $mimeType = MimeType::detectByContent($content);
