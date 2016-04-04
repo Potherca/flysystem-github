@@ -229,21 +229,43 @@ class Api implements ApiInterface
     final public function getRecursiveMetadata($path, $recursive)
     {
         // If $info['truncated'] is `true`, the number of items in the tree array
-        // exceeded the github maximum limit. If you need to fetch more items,
+        // exceeded the github maximum limit. If we need to fetch more items,
         // multiple calls will be needed
 
         $info = $this->getGitDataApi()->trees()->show(
             $this->settings->getVendor(),
             $this->settings->getPackage(),
             $this->settings->getReference(),
-            $recursive
+            true //@NOTE: To retrieve all needed date the 'recursive' flag should always be 'true'
         );
 
         $path = rtrim($path, '/') . '/';
 
         $treeMetadata = $this->extractMetaDataFromTreeInfo($info[self::KEY_TREE], $path, $recursive);
 
-        return $this->normalizeTreeMetadata($treeMetadata);
+        $normalizeTreeMetadata = $this->normalizeTreeMetadata($treeMetadata);
+
+        $directoryTimestamp = 0000000000;
+
+        array_walk($normalizeTreeMetadata, function (&$entry) use (&$directoryTimestamp) {
+            if ($this->hasKey($entry, self::KEY_TIMESTAMP) === false
+                || $entry[self::KEY_TIMESTAMP] === false
+            ) {
+                $timestamp = $this->getCreatedTimestamp($entry[self::KEY_PATH])['timestamp'];
+
+                $entry[self::KEY_TIMESTAMP] = $timestamp;
+
+                if ($timestamp > $directoryTimestamp) {
+                    $directoryTimestamp = $timestamp;
+                }
+            }
+        });
+
+        /* @FIXME: It might be wise to use a filter to find the right entry instead of ussing it will always be the first entry in the array. */
+
+        $normalizeTreeMetadata[0]['timestamp'] = $directoryTimestamp;
+
+        return $normalizeTreeMetadata;
     }
 
     /**
