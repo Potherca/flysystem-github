@@ -267,7 +267,7 @@ class Api implements ApiInterface
             }
         });
 
-        /* @FIXME: It might be wise to use a filter to find the right entry instead of ussing it will always be the first entry in the array. */
+        /* @FIXME: It might be wise to use a filter to find the right entry instead of always using the first entry in the array. */
 
         $normalizeTreeMetadata[0]['timestamp'] = $directoryTimestamp;
 
