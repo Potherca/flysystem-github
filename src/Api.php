@@ -232,7 +232,7 @@ class Api implements ApiInterface
      * @return array
      * @throws \Github\Exception\InvalidArgumentException
      */
-    final public function getRecursiveMetadata($path, $recursive)
+    final public function getTreeMetadata($path, $recursive)
     {
         // If $info['truncated'] is `true`, the number of items in the tree array
         // exceeded the github maximum limit. If we need to fetch more items,

@@ -42,7 +42,7 @@ interface ApiInterface
      *
      * @return array
      */
-    public function getRecursiveMetadata($path, $recursive);
+    public function getTreeMetadata($path, $recursive);
 
     /**
      * @param string $path

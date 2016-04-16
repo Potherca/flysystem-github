@@ -65,12 +65,12 @@ class GithubAdapterTest extends \PHPUnit_Framework_TestCase
         return [
             ['has', 'exists', [self::MOCK_FILE_PATH]],
             ['read', 'getFileContents', [self::MOCK_FILE_PATH]],
-            ['listContents', 'getRecursiveMetadata', [self::MOCK_FILE_PATH, true]],
+            ['listContents', 'getTreeMetadata', [self::MOCK_FILE_PATH, true]],
             ['getMetadata', 'getMetadata', [self::MOCK_FILE_PATH]],
             ['getSize', 'getMetadata', [self::MOCK_FILE_PATH]],
             ['getMimetype', 'guessMimeType', [self::MOCK_FILE_PATH]],
             ['getTimestamp', 'getLastUpdatedTimestamp', [self::MOCK_FILE_PATH]],
-            ['getVisibility', 'getRecursiveMetadata', [self::MOCK_FILE_PATH]],
+            ['getVisibility', 'getTreeMetadata', [self::MOCK_FILE_PATH, false]],
         ];
     }
 }
