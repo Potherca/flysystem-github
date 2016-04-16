@@ -264,6 +264,8 @@ class ApiTest extends \PHPUnit_Framework_TestCase
     /**
      * @covers ::getRecursiveMetadata
      *
+     * @uses Potherca\Flysystem\Github\Api::getCreatedTimestamp
+     *
      * @dataProvider provideExpectedMetadata
      *
      * @param array $data
@@ -284,7 +286,7 @@ class ApiTest extends \PHPUnit_Framework_TestCase
         $this->prepareMockApi(
             'show',
             $api::API_GIT_DATA,
-            [$mockVendor, $mockPackage, $mockReference, $data['recursive']],
+            [$mockVendor, $mockPackage, $mockReference, true],
             $this->getMockApiTreeResponse($data['truncated'], $api),
             Trees::class
         );
@@ -564,7 +566,7 @@ class ApiTest extends \PHPUnit_Framework_TestCase
                     ]
                 ],
                 'recursive' => false,
-                'truncated' => false
+                'truncated' => false,
             ]],
             'Filepath, recursive, not truncated' => [[
                 'path' => self::MOCK_FILE_PATH,
