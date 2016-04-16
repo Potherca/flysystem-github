@@ -53,8 +53,7 @@ class ApiTest extends \PHPUnit_Framework_TestCase
             Client::class
         );
 
-        $this->expectException(\PHPUnit_Framework_Error::class);
-        $this->expectExceptionMessage($message);
+        $this->setExpectedException(\PHPUnit_Framework_Error::class, $message);
 
         /** @noinspection PhpParamsInspection */
         new Api();
@@ -72,8 +71,7 @@ class ApiTest extends \PHPUnit_Framework_TestCase
             SettingsInterface::class
         );
 
-        $this->expectException(\PHPUnit_Framework_Error::class);
-        $this->expectExceptionMessage($message);
+        $this->setExpectedException(\PHPUnit_Framework_Error::class, $message);
 
         /** @noinspection PhpParamsInspection */
         new Api($this->getMockClient());
@@ -229,8 +227,7 @@ class ApiTest extends \PHPUnit_Framework_TestCase
     {
         $api = $this->api;
 
-        $this->expectException(RuntimeException::class);
-        $this->expectExceptionMessage(self::MOCK_FILE_CONTENTS);
+        $this->setExpectedException(RuntimeException::class, self::MOCK_FILE_CONTENTS);
 
         $expected = false;
 
@@ -250,8 +247,7 @@ class ApiTest extends \PHPUnit_Framework_TestCase
     {
         $api = $this->api;
 
-        $this->expectException(\RuntimeException::class);
-        $this->expectExceptionMessage(Api::ERROR_NOT_FOUND);
+        $this->setExpectedException(\RuntimeException::class, Api::ERROR_NOT_FOUND);
 
         $expected = false;
 
