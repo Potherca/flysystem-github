@@ -345,7 +345,7 @@ class Api implements ApiInterface
                 if ($recursive === true) {
                     $match = true;
                 } else {
-                    $match = ($matchPath !== '' && strpos($entryPath, '/', $length) === false);
+                    $match = ($matchPath !== '' || strpos($entryPath, '/', $length) === false);
                 }
             }
 
