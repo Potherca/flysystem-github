@@ -197,6 +197,8 @@ class Api implements ApiInterface
             $recursive
         );
 
+        $path = rtrim($path, '/') . '/';
+
         $treeMetadata = $this->extractMetaDataFromTreeInfo($info[self::KEY_TREE], $path, $recursive);
 
         return $this->normalizeTreeMetadata($treeMetadata);
@@ -255,29 +257,24 @@ class Api implements ApiInterface
      */
     private function extractMetaDataFromTreeInfo(array $tree, $path, $recursive)
     {
-        if (empty($path) === false) {
-            $path = rtrim($path, '/') . '/';
-            $metadata = array_filter($tree, function ($entry) use ($path, $recursive) {
-                $match = false;
+        $matchPath = substr($path, 0, -1);
+        $length = strlen($matchPath) - 1;
 
-                if (strpos($entry[self::KEY_PATH], $path) === 0) {
-                    if ($recursive === true) {
-                        $match = true;
-                    } else {
-                        $length = strlen($path);
-                        $match = (strpos($entry[self::KEY_PATH], '/', $length) === false);
-                    }
+        $metadata = array_filter($tree, function ($entry) use ($matchPath, $recursive, $length) {
+            $match = false;
+
+            $entryPath = $entry[self::KEY_PATH];
+
+            if ($matchPath === '' || strpos($entryPath, $matchPath) === 0) {
+                if ($recursive === true) {
+                    $match = true;
+                } else {
+                    $match = ($matchPath !== '' && strpos($entryPath, '/', $length) === false);
                 }
+            }
 
-                return $match;
-            });
-        } elseif ($recursive === false) {
-            $metadata = array_filter($tree, function ($entry) use ($path) {
-                return (strpos($entry[self::KEY_PATH], '/', strlen($path)) === false);
-            });
-        } else {
-            $metadata = $tree;
-        }
+            return $match;
+        });
 
         return $metadata;
     }
