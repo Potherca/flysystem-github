@@ -26,8 +26,8 @@
     printerClass="NyanCat\PHPUnit\ResultPrinter"
 >
     <testsuites>
-        <testsuite name="Flysystem Github Adapter Test Suite">
-            <directory>tests</directory>
+        <testsuite name="Flysystem Github Adapter - Unit Tests">
+            <directory>tests/unit-tests</directory>
         </testsuite>
     </testsuites>
     <filter>
