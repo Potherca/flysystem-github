@@ -8,6 +8,7 @@ use Github\Api\Repository\Commits;
 use Github\Api\Repository\Contents;
 use Github\Client;
 use Github\Exception\RuntimeException;
+use PHPUnit_Framework_MockObject_MockObject as MockObject;
 
 /**
  * Tests for the Api class
@@ -24,9 +25,9 @@ class ApiTest extends \PHPUnit_Framework_TestCase
 
     /** @var Api */
     private $api;
-    /** @var Client|\PHPUnit_Framework_MockObject_MockObject */
+    /** @var Client|MockObject */
     private $mockClient;
-    /** @var Settings|\PHPUnit_Framework_MockObject_MockObject */
+    /** @var Settings|MockObject */
     private $mockSettings;
 
     /**
@@ -212,8 +213,8 @@ class ApiTest extends \PHPUnit_Framework_TestCase
         $expected = false;
 
         $this->mockClient->expects(self::exactly(1))
-        ->method('api')
-        ->willThrowException(new RuntimeException(Api::ERROR_NOT_FOUND));
+            ->method('api')
+            ->willThrowException(new RuntimeException(Api::ERROR_NOT_FOUND));
 
         $actual = $api->getMetaData(self::MOCK_FILE_PATH);
 
@@ -232,8 +233,8 @@ class ApiTest extends \PHPUnit_Framework_TestCase
         $expected = false;
 
         $this->mockClient->expects(self::exactly(1))
-        ->method('api')
-        ->willThrowException(new RuntimeException(self::MOCK_FILE_CONTENTS));
+            ->method('api')
+            ->willThrowException(new RuntimeException(self::MOCK_FILE_CONTENTS));
 
         $actual = $api->getMetaData(self::MOCK_FILE_PATH);
 
@@ -252,8 +253,8 @@ class ApiTest extends \PHPUnit_Framework_TestCase
         $expected = false;
 
         $this->mockClient->expects(self::exactly(1))
-        ->method('api')
-        ->willThrowException(new \RuntimeException(Api::ERROR_NOT_FOUND));
+            ->method('api')
+            ->willThrowException(new \RuntimeException(Api::ERROR_NOT_FOUND));
 
         $actual = $api->getMetaData(self::MOCK_FILE_PATH);
 
@@ -291,24 +292,6 @@ class ApiTest extends \PHPUnit_Framework_TestCase
         $actual = $api->getRecursiveMetadata($data['path'], $data['recursive']);
 
         self::assertEquals($data['expected'], $actual);
-    }
-
-    /**
-     * @covers ::guessMimeType
-     *
-     * @uses League\Flysystem\Util\MimeType
-     */
-    final public function testApiShouldUseFileExtensionToGuessMimeTypeWhenExtensionIsAvailable()
-    {
-        $api = $this->api;
-
-        $expected = 'image/png';
-
-        $this->mockClient->expects(self::never())->method('api');
-
-        $actual = $api->guessMimeType(self::MOCK_FILE_PATH.'.png');
-
-        self::assertEquals($expected, $actual);
     }
 
     /**
@@ -387,7 +370,7 @@ class ApiTest extends \PHPUnit_Framework_TestCase
 
     ////////////////////////////// MOCKS AND STUBS \\\\\\\\\\\\\\\\\\\\\\\\\\\\\
     /**
-     * @return Client|\PHPUnit_Framework_MockObject_MockObject
+     * @return Client|MockObject
      */
     private function getMockClient()
     {
@@ -397,7 +380,7 @@ class ApiTest extends \PHPUnit_Framework_TestCase
     }
 
     /**
-     * @return Settings|\PHPUnit_Framework_MockObject_MockObject
+     * @return Settings|MockObject
      */
     private function getMockSettings()
     {
@@ -622,7 +605,7 @@ class ApiTest extends \PHPUnit_Framework_TestCase
                     ]
                 ],
                 'recursive' => true,
-                'truncated' => false
+                'truncated' => false,
             ]],
             'Filepath, not recursive, truncated' => [[
                 'path' => self::MOCK_FILE_PATH,
@@ -652,7 +635,7 @@ class ApiTest extends \PHPUnit_Framework_TestCase
                     ]
                 ],
                 'recursive' => false,
-                'truncated' => true
+                'truncated' => true,
             ]],
             'Filepath, recursive, truncated' => [[
                 'path' => self::MOCK_FILE_PATH,
@@ -693,7 +676,7 @@ class ApiTest extends \PHPUnit_Framework_TestCase
                     ]
                 ],
                 'recursive' => true,
-                'truncated' => true
+                'truncated' => true,
             ]],
             'No Filepath, recursive, not truncated' => [[
                 'path' => '',
@@ -745,7 +728,7 @@ class ApiTest extends \PHPUnit_Framework_TestCase
                     ]
                 ],
                 'recursive' => true,
-                'truncated' => false
+                'truncated' => false,
             ]],
             'No Filepath, recursive, truncated' => [[
                 'path' => '',
@@ -797,7 +780,7 @@ class ApiTest extends \PHPUnit_Framework_TestCase
                     ]
                 ],
                 'recursive' => true,
-                'truncated' => true
+                'truncated' => true,
             ]],
             'No Filepath, not recursive, truncated' => [[
                 'path' => '',
@@ -811,7 +794,7 @@ class ApiTest extends \PHPUnit_Framework_TestCase
                     ]
                 ],
                 'recursive' => false,
-                'truncated' => true
+                'truncated' => true,
             ]],
             'No Filepath, not recursive, not truncated' => [[
                 'path' => '',
@@ -825,7 +808,7 @@ class ApiTest extends \PHPUnit_Framework_TestCase
                     ]
                 ],
                 'recursive' => false,
-                'truncated' => false
+                'truncated' => false,
             ]],
         ];
     }
