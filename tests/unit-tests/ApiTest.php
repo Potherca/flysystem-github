@@ -264,7 +264,7 @@ class ApiTest extends \PHPUnit_Framework_TestCase
     /**
      * @covers ::getRecursiveMetadata
      *
-     * @uses Potherca\Flysystem\Github\Api::getCreatedTimestamp
+     * @uses         Potherca\Flysystem\Github\Api::getCreatedTimestamp
      *
      * @dataProvider provideExpectedMetadata
      *
@@ -293,6 +293,11 @@ class ApiTest extends \PHPUnit_Framework_TestCase
 
         $actual = $api->getRecursiveMetadata($data['path'], $data['recursive']);
 
+        $actual = array_map(function ($value) {
+            $value['timestamp'] = null;
+            return $value;
+        }, $actual);
+
         self::assertEquals($data['expected'], $actual);
     }
 
@@ -300,8 +305,8 @@ class ApiTest extends \PHPUnit_Framework_TestCase
      * @covers ::guessMimeType
      *
      * @uses League\Flysystem\Util\MimeType
-     *
      * @uses Potherca\Flysystem\Github\Api::getFileContents
+     * @uses Potherca\Flysystem\Github\Api::getMetaData
      */
     final public function testApiShouldUseFileContentsToGuessMimeTypeWhenExtensionUnavailable()
     {
@@ -408,8 +413,16 @@ class ApiTest extends \PHPUnit_Framework_TestCase
         $parts = explode('\\', $repositoryClass);
         $repositoryName = strtolower(array_pop($parts));
 
+        $methods = [$repositoryName, 'getPerPage', 'setPerPage'];
+
+        $shouldMockCommitsRepository = false;
+        if (in_array('commits', $methods, true) === false) {
+            $shouldMockCommitsRepository = true;
+            $methods[] = 'commits';
+        }
+
         $mockApi = $this->getMockBuilder(ApiInterface::class)
-            ->setMethods([$repositoryName, 'getPerPage', 'setPerPage'])
+            ->setMethods($methods)
             ->getMock()
         ;
 
@@ -432,9 +445,31 @@ class ApiTest extends \PHPUnit_Framework_TestCase
             ->willReturn($mockRepository)
         ;
 
-        $this->mockClient->expects(self::exactly(1))
+        if ($shouldMockCommitsRepository === true) {
+            $mockCommitsRepository = $this->getMockBuilder(Commits::class)
+                ->disableOriginalConstructor()
+                ->getMock()
+            ;
+
+            $apiOutput = [
+                ['commit' => ['committer' => ['date' => '20150101']]],
+                ['commit' => ['committer' => ['date' => '20140202']]]
+            ];
+
+            $mockCommitsRepository->expects(self::any())
+                ->method('all')
+                ->withAnyParameters()
+                ->willReturn($apiOutput)
+            ;
+            $mockApi->expects(self::any())
+                ->method('commits')
+                ->willReturn($mockCommitsRepository)
+            ;
+        }
+
+        $this->mockClient->expects(self::any())
             ->method('api')
-            ->with($apiName)
+            ->with(self::matchesRegularExpression(sprintf('/%s|repo/', $apiName)))
             ->willReturn($mockApi)
         ;
     }
@@ -445,7 +480,7 @@ class ApiTest extends \PHPUnit_Framework_TestCase
     private function prepareMockSettings(array $expectations)
     {
         foreach ($expectations as $methodName => $returnValue) {
-            $this->mockSettings->expects(self::exactly(1))
+            $this->mockSettings->expects(self::any())
                 ->method($methodName)
                 ->willReturn($returnValue)
             ;
@@ -453,11 +488,11 @@ class ApiTest extends \PHPUnit_Framework_TestCase
     }
 
     /**
-     * @param $truncated
-     * @param $api
+     * @param bool $truncated
+     * @param Api $api
      * @return array
      */
-    private function getMockApiTreeResponse($truncated, $api)
+    private function getMockApiTreeResponse($truncated, Api $api)
     {
         return [
             $api::KEY_TREE => [
@@ -543,27 +578,38 @@ class ApiTest extends \PHPUnit_Framework_TestCase
                 'expected' => [
                     [
                         'path' => '/path/to/mock/file',
-                        'mode' => 100644,
+                        'mode' => '100644',
                         'type' => 'dir',
                         'size' => 57,
                         'name' => '/path/to/mock/file',
-                        'contents' => null,
-                        'stream' => null,
+                        'contents' => false,
+                        'stream' => false,
                         'timestamp' => null,
                         'visibility' => 'public'
                     ],
                     [
                         'path' => '/path/to/mock/fileFoo',
                         'basename' => '/path/to/mock/fileFoo',
-                        'mode' => 100644,
+                        'mode' => '100644',
                         'type' => 'file',
                         'size' => 57,
                         'name' => '/path/to/mock/fileFoo',
-                        'contents' => null,
-                        'stream' => null,
+                        'contents' => false,
+                        'stream' => false,
                         'timestamp' => null,
                         'visibility' => 'public'
-                    ]
+                    ],
+                    [
+                        'path' => '/path/to/mock/file/Bar',
+                        'name' => '/path/to/mock/file/Bar',
+                        'mode' => '100644',
+                        'type' => 'file',
+                        'size' => 57,
+                        'visibility' => 'public',
+                        'contents' => false,
+                        'stream' => false,
+                        'timestamp' => null
+                    ],
                 ],
                 'recursive' => false,
                 'truncated' => false,
@@ -573,35 +619,35 @@ class ApiTest extends \PHPUnit_Framework_TestCase
                 'expected' => [
                     [
                         'path' => '/path/to/mock/file',
-                        'mode' => 100644,
+                        'mode' => '100644',
                         'type' => 'dir',
                         'size' => 57,
                         'name' => '/path/to/mock/file',
-                        'contents' => null,
-                        'stream' => null,
+                        'contents' => false,
+                        'stream' => false,
                         'timestamp' => null,
                         'visibility' => 'public'
                     ],
                     [
                         'path' => '/path/to/mock/fileFoo',
                         'basename' => '/path/to/mock/fileFoo',
-                        'mode' => 100644,
+                        'mode' => '100644',
                         'type' => 'file',
                         'size' => 57,
                         'name' => '/path/to/mock/fileFoo',
-                        'contents' => null,
-                        'stream' => null,
+                        'contents' => false,
+                        'stream' => false,
                         'timestamp' => null,
                         'visibility' => 'public'
                     ],
                     [
                         'path' => '/path/to/mock/file/Bar',
-                        'mode' => 100644,
+                        'mode' => '100644',
                         'type' => 'file',
                         'size' => 57,
                         'name' => '/path/to/mock/file/Bar',
-                        'contents' => null,
-                        'stream' => null,
+                        'contents' => false,
+                        'stream' => false,
                         'timestamp' => null,
                         'visibility' => 'public'
                     ]
@@ -614,27 +660,38 @@ class ApiTest extends \PHPUnit_Framework_TestCase
                 'expected' => [
                     [
                         'path' => '/path/to/mock/file',
-                        'mode' => 100644,
+                        'mode' => '100644',
                         'type' => 'dir',
                         'size' => 57,
                         'name' => '/path/to/mock/file',
-                        'contents' => null,
-                        'stream' => null,
+                        'contents' => false,
+                        'stream' => false,
                         'timestamp' => null,
                         'visibility' => 'public'
                     ],
                     [
                         'path' => '/path/to/mock/fileFoo',
                         'basename' => '/path/to/mock/fileFoo',
-                        'mode' => 100644,
+                        'mode' => '100644',
                         'type' => 'file',
                         'size' => 57,
                         'name' => '/path/to/mock/fileFoo',
-                        'contents' => null,
-                        'stream' => null,
+                        'contents' => false,
+                        'stream' => false,
                         'timestamp' => null,
                         'visibility' => 'public'
-                    ]
+                    ],
+                    [
+                        'path' => '/path/to/mock/file/Bar',
+                        'name' => '/path/to/mock/file/Bar',
+                        'mode' => '100644',
+                        'type' => 'file',
+                        'size' => 57,
+                        'visibility' => 'public',
+                        'contents' => false,
+                        'stream' => false,
+                        'timestamp' => null
+                    ],
                 ],
                 'recursive' => false,
                 'truncated' => true,
@@ -644,35 +701,35 @@ class ApiTest extends \PHPUnit_Framework_TestCase
                 'expected' => [
                     [
                         'path' => '/path/to/mock/file',
-                        'mode' => 100644,
+                        'mode' => '100644',
                         'type' => 'dir',
                         'size' => 57,
                         'name' => '/path/to/mock/file',
-                        'contents' => null,
-                        'stream' => null,
+                        'contents' => false,
+                        'stream' => false,
                         'timestamp' => null,
                         'visibility' => 'public'
                     ],
                     [
                         'path' => '/path/to/mock/fileFoo',
                         'basename' => '/path/to/mock/fileFoo',
-                        'mode' => 100644,
+                        'mode' => '100644',
                         'type' => 'file',
                         'size' => 57,
                         'name' => '/path/to/mock/fileFoo',
-                        'contents' => null,
-                        'stream' => null,
+                        'contents' => false,
+                        'stream' => false,
                         'timestamp' => null,
                         'visibility' => 'public'
                     ],
                     [
                         'path' => '/path/to/mock/file/Bar',
-                        'mode' => 100644,
+                        'mode' => '100644',
                         'type' => 'file',
                         'size' => 57,
                         'name' => '/path/to/mock/file/Bar',
-                        'contents' => null,
-                        'stream' => null,
+                        'contents' => false,
+                        'stream' => false,
                         'timestamp' => null,
                         'visibility' => 'public'
                     ]
@@ -685,46 +742,46 @@ class ApiTest extends \PHPUnit_Framework_TestCase
                 'expected' => [
                     [
                         'path' => '/path/to/mock/file',
-                        'mode' => 100644,
+                        'mode' => '100644',
                         'type' => 'dir',
                         'size' => 57,
                         'name' => '/path/to/mock/file',
-                        'contents' => null,
-                        'stream' => null,
+                        'contents' => false,
+                        'stream' => false,
                         'timestamp' => null,
                         'visibility' => 'public'
                     ],
                     [
                         'path' => '/path/to/mock/fileFoo',
                         'basename' => '/path/to/mock/fileFoo',
-                        'mode' => 100644,
+                        'mode' => '100644',
                         'type' => 'file',
                         'size' => 57,
                         'name' => '/path/to/mock/fileFoo',
-                        'contents' => null,
-                        'stream' => null,
+                        'contents' => false,
+                        'stream' => false,
                         'timestamp' => null,
                         'visibility' => 'public'
                     ],
                     [
                         'path' => '/path/to/mock/file/Bar',
-                        'mode' => 100644,
+                        'mode' => '100644',
                         'type' => 'file',
                         'size' => 57,
                         'name' => '/path/to/mock/file/Bar',
-                        'contents' => null,
-                        'stream' => null,
+                        'contents' => false,
+                        'stream' => false,
                         'timestamp' => null,
                         'visibility' => 'public'
                     ],
                     [
                         'path' => 'some/other/file',
-                        'mode' => 100644,
+                        'mode' => '100644',
                         'type' => 'file',
                         'size' => 747,
                         'name' => 'some/other/file',
-                        'contents' => null,
-                        'stream' => null,
+                        'contents' => false,
+                        'stream' => false,
                         'timestamp' => null,
                         'visibility' => 'public'
                     ]
@@ -737,80 +794,52 @@ class ApiTest extends \PHPUnit_Framework_TestCase
                 'expected' => [
                     [
                         'path' => '/path/to/mock/file',
-                        'mode' => 100644,
+                        'mode' => '100644',
                         'type' => 'dir',
                         'size' => 57,
                         'name' => '/path/to/mock/file',
-                        'contents' => null,
-                        'stream' => null,
+                        'contents' => false,
+                        'stream' => false,
                         'timestamp' => null,
                         'visibility' => 'public'
                     ],
                     [
                         'path' => '/path/to/mock/fileFoo',
                         'basename' => '/path/to/mock/fileFoo',
-                        'mode' => 100644,
+                        'mode' => '100644',
                         'type' => 'file',
                         'size' => 57,
                         'name' => '/path/to/mock/fileFoo',
-                        'contents' => null,
-                        'stream' => null,
+                        'contents' => false,
+                        'stream' => false,
                         'timestamp' => null,
                         'visibility' => 'public'
                     ],
                     [
                         'path' => '/path/to/mock/file/Bar',
-                        'mode' => 100644,
+                        'mode' => '100644',
                         'type' => 'file',
                         'size' => 57,
                         'name' => '/path/to/mock/file/Bar',
-                        'contents' => null,
-                        'stream' => null,
+                        'contents' => false,
+                        'stream' => false,
                         'timestamp' => null,
                         'visibility' => 'public'
                     ],
                     [
                         'path' => 'some/other/file',
-                        'mode' => 100644,
+                        'mode' => '100644',
                         'type' => 'file',
                         'size' => 747,
                         'name' => 'some/other/file',
-                        'contents' => null,
-                        'stream' => null,
+                        'contents' => false,
+                        'stream' => false,
                         'timestamp' => null,
                         'visibility' => 'public'
                     ]
                 ],
                 'recursive' => true,
                 'truncated' => true,
-            ]],
-            'No Filepath, not recursive, truncated' => [[
-                'path' => '',
-                'expected' => [
-                    [
-                        'name' => null,
-                        'visibility' => null,
-                        'contents' => null,
-                        'stream' => null,
-                        'timestamp' => null
-                    ]
-                ],
-                'recursive' => false,
-                'truncated' => true,
-            ]],
-            'No Filepath, not recursive, not truncated' => [[
-                'path' => '',
-                'expected' => [
-                    [
-                        'name' => null,
-                        'visibility' => null,
-                        'contents' => null,
-                        'stream' => null,
-                        'timestamp' => null,
-                    ]
-                ],
-                'recursive' => false,
-                'truncated' => false,
             ]],
         ];
     }
