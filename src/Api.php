@@ -4,6 +4,7 @@ namespace Potherca\Flysystem\Github;
 
 use Github\Api\GitData;
 use Github\Api\Repo;
+use Github\Api\Repository\Contents;
 use Github\Client;
 use Github\Exception\RuntimeException;
 use League\Flysystem\AdapterInterface;
@@ -41,6 +42,8 @@ class Api implements ApiInterface
 
     /** @var Client */
     private $client;
+    /** @var Contents */
+    private $contents;
     /** @var SettingsInterface */
     private $settings;
     /** @var bool */
@@ -87,7 +90,10 @@ class Api implements ApiInterface
      */
     private function getRepositoryContent()
     {
-        return $this->getRepositoryApi()->contents();
+        if ($this->contents === null) {
+            $this->contents = $this->getRepositoryApi()->contents();
+        }
+        return $this->contents;
     }
 
     //////////////////////////////// PUBLIC API \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
