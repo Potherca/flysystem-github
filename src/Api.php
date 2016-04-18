@@ -334,7 +334,7 @@ class Api implements ApiInterface
     private function extractMetaDataFromTreeInfo(array $tree, $path, $recursive)
     {
         $matchPath = substr($path, 0, -1);
-        $length = strlen($matchPath) - 1;
+        $length = abs(strlen($matchPath) - 1);
 
         $metadata = array_filter($tree, function ($entry) use ($matchPath, $recursive, $length) {
             $match = false;
