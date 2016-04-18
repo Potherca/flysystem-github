@@ -40,6 +40,8 @@ class Api implements ApiInterface
     const GITHUB_API_URL = 'https://api.github.com';
     const GITHUB_URL = 'https://github.com';
 
+    const MIME_TYPE_DIRECTORY = 'directory';
+
     /** @var Client */
     private $client;
     /** @var Contents */
@@ -301,7 +303,7 @@ class Api implements ApiInterface
         $meta = $this->getMetaData($path);
 
         if ($this->hasKey($meta, self::KEY_TYPE) && $meta[self::KEY_TYPE] === self::KEY_DIRECTORY) {
-            $mimeType = 'directory'; //application/x-directory
+            $mimeType = self::MIME_TYPE_DIRECTORY; // or application/x-directory
         } else {
             $content = $this->getFileContents($path);
             $mimeType = MimeType::detectByContent($content);

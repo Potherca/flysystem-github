@@ -404,6 +404,41 @@ class ApiTest extends \PHPUnit_Framework_TestCase
     }
 
     /**
+     * @covers ::guessMimeType
+     *
+     * @uses League\Flysystem\Util\MimeType
+     * @uses Potherca\Flysystem\Github\Api::getFileContents
+     * @uses Potherca\Flysystem\Github\Api::getMetaData
+     */
+    final public function testApiShouldGuessMimeTypeCorrectlyWhenGivenPathIsDirectory()
+    {
+        $api = $this->api;
+
+        $expected = $api::MIME_TYPE_DIRECTORY;
+
+        $mockVendor = 'vendor';
+        $mockPackage = 'package';
+        $mockReference = 'reference';
+
+        $this->prepareMockSettings([
+            'getVendor' => $mockVendor,
+            'getPackage' => $mockPackage,
+            'getReference' => $mockReference,
+        ]);
+
+        $this->prepareMockApi(
+            'show',
+            $api::API_REPO,
+            [$mockVendor, $mockPackage, self::MOCK_FOLDER_PATH, $mockReference],
+            [0 => [$api::KEY_TYPE => $api::MIME_TYPE_DIRECTORY]]
+        );
+
+        $actual = $api->guessMimeType(self::MOCK_FOLDER_PATH);
+
+        self::assertEquals($expected, $actual);
+    }
+
+    /**
      * @uses Potherca\Flysystem\Github\Api::exists
      */
     final public function testApiShouldUseCredentialsWhenTheyHaveBeenGiven()
