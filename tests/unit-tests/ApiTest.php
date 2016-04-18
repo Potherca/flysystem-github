@@ -22,6 +22,7 @@ class ApiTest extends \PHPUnit_Framework_TestCase
     ////////////////////////////////// FIXTURES \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
     const MOCK_FILE_PATH = '/path/to/mock/file';
     const MOCK_FILE_CONTENTS = 'Mock file contents';
+    const MOCK_FOLDER_PATH = 'a-directory';
 
     /** @var Api */
     private $api;
@@ -217,6 +218,65 @@ class ApiTest extends \PHPUnit_Framework_TestCase
             ->willThrowException(new RuntimeException(Api::ERROR_NOT_FOUND));
 
         $actual = $api->getMetaData(self::MOCK_FILE_PATH);
+
+        self::assertEquals($expected, $actual);
+    }
+
+    /**
+     * @covers ::getMetaData
+     */
+    final public function testApiShouldReturnMetadataForDirectoryWhenGivenPathIsDirectory()
+    {
+        $api = $this->api;
+
+        $mockPackage = 'mockPackage';
+        $mockPath = self::MOCK_FOLDER_PATH;
+        $mockReference = 'mockReference';
+        $mockVendor = 'mockVendor';
+
+        $expectedUrl = sprintf(
+            '%s/repos/%s/%s/contents/%s?ref=%s',
+            $api::GITHUB_API_URL,
+            $mockVendor,
+            $mockPackage,
+            $mockPath,
+            $mockReference
+        );
+
+        $expectedHtmlUrl = sprintf(
+            '%s/%s/%s/blob/%s/%s',
+            $api::GITHUB_URL,
+            $mockVendor,
+            $mockPackage,
+            $mockReference,
+            $mockPath
+        );
+
+        $expected = [
+            'type' => $api::KEY_DIRECTORY,
+            'url' => $expectedUrl,
+            'html_url' => $expectedHtmlUrl,
+            '_links' => Array (
+                'self' => $expectedUrl,
+                'html' => $expectedHtmlUrl,
+            ),
+        ];
+
+
+        $this->prepareMockSettings([
+            'getVendor' => $mockVendor,
+            'getPackage' => $mockPackage,
+            'getReference' => $mockReference,
+        ]);
+
+        $this->prepareMockApi(
+            'show',
+            $api::API_REPO,
+            [$mockVendor, $mockPackage, $mockPath, $mockReference],
+            [0 => null]
+        );
+
+        $actual = $api->getMetaData($mockPath);
 
         self::assertEquals($expected, $actual);
     }

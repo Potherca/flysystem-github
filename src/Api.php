@@ -208,8 +208,20 @@ class Api implements ApiInterface
             $project = sprintf('%s/%s', $this->settings->getVendor(), $this->settings->getPackage());
             $reference = $this->settings->getReference();
 
-            $url = sprintf('%s/repos/%s/contents/%s?ref=%s', self::GITHUB_API_URL, $project, $path, $reference);
-            $htmlUrl = sprintf('%s/%s/blob/%s/%s', self::GITHUB_URL, $project, $reference, $path);
+            $url = sprintf(
+                '%s/repos/%s/contents/%s?ref=%s',
+                self::GITHUB_API_URL,
+                $project,
+                trim($path, '/'),
+                $reference
+            );
+            $htmlUrl = sprintf(
+                '%s/%s/blob/%s/%s',
+                self::GITHUB_URL,
+                $project,
+                $reference,
+                trim($path, '/')
+            );
 
             $metadata = [
                 self::KEY_TYPE => self::KEY_DIRECTORY,
