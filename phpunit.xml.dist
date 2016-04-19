@@ -1,11 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <phpunit
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-    xsi:noNamespaceSchemaLocation="http://schema.phpunit.de/5.2/phpunit.xsd"
+    xsi:noNamespaceSchemaLocation="http://schema.phpunit.de/4.8/phpunit.xsd"
 
     backupGlobals="false"
+    strict="true"
     beStrictAboutChangesToGlobalState="true"
     beStrictAboutOutputDuringTests="true"
+    beStrictAboutTestSize="true"
     beStrictAboutCoversAnnotation="true"
     beStrictAboutResourceUsageDuringSmallTests="true"
     beStrictAboutTestsThatDoNotTestAnything="true"
@@ -24,8 +26,8 @@
     printerClass="NyanCat\PHPUnit\ResultPrinter"
 >
     <testsuites>
-        <testsuite name="Flysystem Github Adapter Test Suite">
-            <directory>tests</directory>
+        <testsuite name="Flysystem Github Adapter - Unit Tests">
+            <directory>tests/unit-tests</directory>
         </testsuite>
     </testsuites>
     <filter>
