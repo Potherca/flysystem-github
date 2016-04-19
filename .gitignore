@@ -1,5 +1,8 @@
-build
-vendor
+/* Directories to ignore */
+/build
+/vendor
 
-composer.lock
-phpunit.xml
+/* Files to ignore */
+/.env
+/composer.lock
+/phpunit.xml
