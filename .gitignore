@@ -1,8 +1,9 @@
 /* Directories to ignore */
 /build
 /vendor
+/tests/fixtures/integration-test-repository
 
 /* Files to ignore */
-/.env
+.env
 /composer.lock
 /phpunit.xml
