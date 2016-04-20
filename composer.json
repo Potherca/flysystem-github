@@ -48,6 +48,7 @@
         }
     },
     "scripts": {
-        "test" : "phpunit"
+        "test" : "phpunit",
+        "test-all" : "phpunit --configuration build/phpunit.xml"
     }
 }
