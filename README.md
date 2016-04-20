@@ -1,11 +1,11 @@
 # Flysystem Adapter for Github
 
-[![Latest Version](https://img.shields.io/github/release/potherca/flysystem-github.svg?style=flat-square)](https://github.com/potherca/flysystem-github/releases)
-[![Software License](https://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat-square)](LICENSE.md)
-[![Build Status](https://img.shields.io/travis/potherca/flysystem-github.svg?style=flat-square)](https://travis-ci.org/potherca/flysystem-github)
-[![Coverage Status](https://coveralls.io/repos/potherca/flysystem-github/badge.svg)](https://coveralls.io/github/potherca/flysystem-github)
-[![Quality Score](https://img.shields.io/scrutinizer/g/potherca/flysystem-github.svg?style=flat-square)](https://scrutinizer-ci.com/g/potherca/flysystem-github)
-[![Total Downloads](https://img.shields.io/packagist/dt/potherca/flysystem-github.svg?style=flat-square)](https://packagist.org/packages/potherca/flysystem-github)
+[![Latest Version][Latest Version Badge]][Release Page]
+[![Software License][Software License Badge]][License file]
+[![Build Status][Build Status Badge]][Travis Page]
+[![Coverage Status][Coverage Status Badge]][Coveralls Page]
+[![Quality Score][Quality Score Badge]][Scrutinizer Page]
+[![Total Downloads][Total Downloads Badge]][Packagist Page]
 
 ## Install
 
@@ -124,4 +124,18 @@ Please see [CHANGELOG](CHANGELOG.md) for details.
 
 ## License
 
-The MIT License (MIT). Please see [License File](LICENSE.md) for more information.
+The MIT License (MIT). Please see [License File] for more information.
+
+[Release Page]: https://github.com/potherca/flysystem-github/releases
+[License File]: LICENSE.md
+[Travis Page]: https://travis-ci.org/Potherca/flysystem-github
+[Coveralls Page]: https://coveralls.io/github/potherca/flysystem-github
+[Scrutinizer Page]: https://scrutinizer-ci.com/g/potherca/flysystem-github
+[Packagist Page]: https://packagist.org/packages/potherca/flysystem-github
+
+[Latest Version Badge]: https://img.shields.io/github/release/potherca/flysystem-github.svg
+[Software License Badge]: https://img.shields.io/badge/license-MIT-brightgreen.svg
+[Build Status Badge]: https://img.shields.io/travis/Potherca/flysystem-github.svg
+[Coverage Status Badge]: https://coveralls.io/repos/potherca/flysystem-github/badge.svg
+[Quality Score Badge]: https://img.shields.io/scrutinizer/g/potherca/flysystem-github.svg
+[Total Downloads Badge]: https://img.shields.io/packagist/dt/potherca/flysystem-github.svg
