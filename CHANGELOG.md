@@ -19,6 +19,7 @@ and [Semantic Versioning](http://semver.org/) conventions.
 
 - Adds various @throws annotations
 - Adds timestamps for files and folders
+- Adds integration tests to validate output against comparable output from LocalAdapter
 
 ### Changed
 
