@@ -26,6 +26,7 @@
     },
     "require-dev": {
         "php" : ">=5.5",
+        "josegonzalez/dotenv": "~2.0",
         "phpunit/phpunit" : "~4.8",
         "satooshi/php-coveralls": "~0.6",
         "scrutinizer/ocular": "~1.1",
@@ -47,6 +48,7 @@
         }
     },
     "scripts": {
-        "test" : "phpunit"
+        "test" : "phpunit",
+        "test-all" : "phpunit --configuration build/phpunit.xml"
     }
 }
