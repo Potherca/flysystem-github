@@ -96,7 +96,7 @@ $ composer test
 ```
 
 To run integration tests, which use the Github API, a [Github API token](https://help.github.com/articles/creating-an-access-token-for-command-line-use/) might be needed (to stop the tests hitting the API Limit).
-An API key can be added by setting in the environment as `GITHUB_API_KEY` or by vreating an `.env` file in the integration tests directory and setting it there.
+An API key can be added by setting it in the environment as `GITHUB_API_KEY` or by creating an `.env` file in the integration tests directory and setting it there.
 See `tests/integration-tests/.env.example` for an example.
 
 To run the integration test, run the following command (this will also run the unit-tests):
@@ -104,7 +104,6 @@ To run the integration test, run the following command (this will also run the u
 ``` bash
 $ composer test-all
 ```
-
  
 ## Security
 
