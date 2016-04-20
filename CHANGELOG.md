@@ -13,7 +13,7 @@ and [Semantic Versioning](http://semver.org/) conventions.
 ### Security
 -->
 
-## [Unreleased][unreleased]
+## [v0.3.0] - 2016-04-20 - Metadata for directories and various other bugfixes
 
 ### Added
 
@@ -61,7 +61,7 @@ and [Semantic Versioning](http://semver.org/) conventions.
 Contributing guidelines, Composer file stating dependencies, MIT License, README 
 file and this CHANGELOG file.
 
-[unreleased]: https://github.com/potherca/flysystem-github/compare/v0.2.0...HEAD
+[unreleased]: https://github.com/potherca/flysystem-github/compare/v0.3.0...HEAD
 [v0.3.0]: https://github.com/potherca/flysystem-github/compare/v0.2.0...v0.3.0
 [v0.2.0]: https://github.com/potherca/flysystem-github/compare/v0.1.0...v0.2.0
 [v0.1.0]: https://github.com/potherca/flysystem-github/compare/v0.0.0...v0.1.0
