@@ -8,6 +8,7 @@ use Github\Api\Repository\Commits;
 use Github\Api\Repository\Contents;
 use Github\Client;
 use Github\Exception\RuntimeException;
+use PHPUnit_Framework_MockObject_MockObject as MockObject;
 
 /**
  * Tests for the Api class
@@ -21,12 +22,13 @@ class ApiTest extends \PHPUnit_Framework_TestCase
     ////////////////////////////////// FIXTURES \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
     const MOCK_FILE_PATH = '/path/to/mock/file';
     const MOCK_FILE_CONTENTS = 'Mock file contents';
+    const MOCK_FOLDER_PATH = 'a-directory';
 
     /** @var Api */
     private $api;
-    /** @var Client|\PHPUnit_Framework_MockObject_MockObject */
+    /** @var Client|MockObject */
     private $mockClient;
-    /** @var Settings|\PHPUnit_Framework_MockObject_MockObject */
+    /** @var Settings|MockObject */
     private $mockSettings;
 
     /**
@@ -53,10 +55,7 @@ class ApiTest extends \PHPUnit_Framework_TestCase
             Client::class
         );
 
-        $this->setExpectedException(
-            \PHPUnit_Framework_Error::class,
-            $message
-        );
+        $this->setExpectedException(\PHPUnit_Framework_Error::class, $message);
 
         /** @noinspection PhpParamsInspection */
         new Api();
@@ -74,10 +73,7 @@ class ApiTest extends \PHPUnit_Framework_TestCase
             SettingsInterface::class
         );
 
-        $this->setExpectedException(
-            \PHPUnit_Framework_Error::class,
-            $message
-        );
+        $this->setExpectedException(\PHPUnit_Framework_Error::class, $message);
 
         /** @noinspection PhpParamsInspection */
         new Api($this->getMockClient());
@@ -111,7 +107,7 @@ class ApiTest extends \PHPUnit_Framework_TestCase
 
         $actual = $api->getFileContents(self::MOCK_FILE_PATH);
 
-        $this->assertEquals($expected, $actual);
+        self::assertEquals($expected, $actual);
     }
 
     /**
@@ -142,7 +138,7 @@ class ApiTest extends \PHPUnit_Framework_TestCase
 
         $actual = $api->exists(self::MOCK_FILE_PATH);
 
-        $this->assertEquals($expected, $actual);
+        self::assertEquals($expected, $actual);
     }
 
     /**
@@ -158,7 +154,7 @@ class ApiTest extends \PHPUnit_Framework_TestCase
 
         $actual = $api->getLastUpdatedTimestamp(self::MOCK_FILE_PATH);
 
-        $this->assertEquals($expected, $actual);
+        self::assertEquals($expected, $actual);
     }
 
     /**
@@ -174,8 +170,9 @@ class ApiTest extends \PHPUnit_Framework_TestCase
 
         $actual = $api->getCreatedTimestamp(self::MOCK_FILE_PATH);
 
-        $this->assertEquals($expected, $actual);
+        self::assertEquals($expected, $actual);
     }
+
     /**
      * @covers ::getMetaData
      */
@@ -204,7 +201,7 @@ class ApiTest extends \PHPUnit_Framework_TestCase
 
         $actual = $api->getMetaData(self::MOCK_FILE_PATH);
 
-        $this->assertEquals($expected, $actual);
+        self::assertEquals($expected, $actual);
     }
 
     /**
@@ -216,13 +213,72 @@ class ApiTest extends \PHPUnit_Framework_TestCase
 
         $expected = false;
 
-        $this->mockClient->expects($this->exactly(1))
-        ->method('api')
-        ->willThrowException(new RuntimeException(Api::ERROR_NOT_FOUND));
+        $this->mockClient->expects(self::exactly(1))
+            ->method('api')
+            ->willThrowException(new RuntimeException(Api::ERROR_NOT_FOUND));
 
         $actual = $api->getMetaData(self::MOCK_FILE_PATH);
 
-        $this->assertEquals($expected, $actual);
+        self::assertEquals($expected, $actual);
+    }
+
+    /**
+     * @covers ::getMetaData
+     */
+    final public function testApiShouldReturnMetadataForDirectoryWhenGivenPathIsDirectory()
+    {
+        $api = $this->api;
+
+        $mockPackage = 'mockPackage';
+        $mockPath = self::MOCK_FOLDER_PATH;
+        $mockReference = 'mockReference';
+        $mockVendor = 'mockVendor';
+
+        $expectedUrl = sprintf(
+            '%s/repos/%s/%s/contents/%s?ref=%s',
+            $api::GITHUB_API_URL,
+            $mockVendor,
+            $mockPackage,
+            $mockPath,
+            $mockReference
+        );
+
+        $expectedHtmlUrl = sprintf(
+            '%s/%s/%s/blob/%s/%s',
+            $api::GITHUB_URL,
+            $mockVendor,
+            $mockPackage,
+            $mockReference,
+            $mockPath
+        );
+
+        $expected = [
+            'type' => $api::KEY_DIRECTORY,
+            'url' => $expectedUrl,
+            'html_url' => $expectedHtmlUrl,
+            '_links' => Array (
+                'self' => $expectedUrl,
+                'html' => $expectedHtmlUrl,
+            ),
+        ];
+
+
+        $this->prepareMockSettings([
+            'getVendor' => $mockVendor,
+            'getPackage' => $mockPackage,
+            'getReference' => $mockReference,
+        ]);
+
+        $this->prepareMockApi(
+            'show',
+            $api::API_REPO,
+            [$mockVendor, $mockPackage, $mockPath, $mockReference],
+            [0 => null]
+        );
+
+        $actual = $api->getMetaData($mockPath);
+
+        self::assertEquals($expected, $actual);
     }
 
     /**
@@ -236,13 +292,13 @@ class ApiTest extends \PHPUnit_Framework_TestCase
 
         $expected = false;
 
-        $this->mockClient->expects($this->exactly(1))
-        ->method('api')
-        ->willThrowException(new RuntimeException(self::MOCK_FILE_CONTENTS));
+        $this->mockClient->expects(self::exactly(1))
+            ->method('api')
+            ->willThrowException(new RuntimeException(self::MOCK_FILE_CONTENTS));
 
         $actual = $api->getMetaData(self::MOCK_FILE_PATH);
 
-        $this->assertEquals($expected, $actual);
+        self::assertEquals($expected, $actual);
     }
 
     /**
@@ -256,31 +312,25 @@ class ApiTest extends \PHPUnit_Framework_TestCase
 
         $expected = false;
 
-        $this->mockClient->expects($this->exactly(1))
-        ->method('api')
-        ->willThrowException(new \RuntimeException(Api::ERROR_NOT_FOUND));
+        $this->mockClient->expects(self::exactly(1))
+            ->method('api')
+            ->willThrowException(new \RuntimeException(Api::ERROR_NOT_FOUND));
 
         $actual = $api->getMetaData(self::MOCK_FILE_PATH);
 
-        $this->assertEquals($expected, $actual);
+        self::assertEquals($expected, $actual);
     }
 
     /**
-     * @covers ::getRecursiveMetadata
+     * @covers ::getTreeMetadata
+     *
+     * @uses         Potherca\Flysystem\Github\Api::getCreatedTimestamp
      *
      * @dataProvider provideExpectedMetadata
      *
-     * @param string $path
-     * @param array $expected
-     * @param bool $recursive
-     * @param bool $truncated
+     * @param array $data
      */
-    final public function testApiShouldRetrieveExpectedMetadataWhenAskedTogetRecursiveMetadata(
-        $path,
-        $expected,
-        $recursive,
-        $truncated
-    ) {
+    final public function testApiShouldRetrieveExpectedMetadataWhenAskedToGetTreeMetadata($data) {
         $api = $this->api;
 
         $mockVendor = 'vendor';
@@ -296,40 +346,27 @@ class ApiTest extends \PHPUnit_Framework_TestCase
         $this->prepareMockApi(
             'show',
             $api::API_GIT_DATA,
-            [$mockVendor, $mockPackage, $mockReference, $recursive],
-            $this->getMockApiTreeResponse($truncated, $api),
+            [$mockVendor, $mockPackage, $mockReference, true],
+            $this->getMockApiTreeResponse($data['truncated'], $api),
             Trees::class
         );
 
-        $actual = $api->getRecursiveMetadata($path, $recursive);
+        $actual = $api->getTreeMetadata($data['path'], $data['recursive']);
 
-        $this->assertEquals($expected, $actual);
+        $actual = array_map(function ($value) {
+            $value['timestamp'] = null;
+            return $value;
+        }, $actual);
+
+        self::assertEquals($data['expected'], $actual);
     }
 
     /**
      * @covers ::guessMimeType
      *
      * @uses League\Flysystem\Util\MimeType
-     */
-    final public function testApiShouldUseFileExtensionToGuessMimeTypeWhenExtensionIsAvailable()
-    {
-        $api = $this->api;
-
-        $expected = 'image/png';
-
-        $this->mockClient->expects($this->never())->method('api');
-
-        $actual = $api->guessMimeType(self::MOCK_FILE_PATH.'.png');
-
-        $this->assertEquals($expected, $actual);
-    }
-
-    /**
-     * @covers ::guessMimeType
-     *
-     * @uses League\Flysystem\Util\MimeType
-     *
      * @uses Potherca\Flysystem\Github\Api::getFileContents
+     * @uses Potherca\Flysystem\Github\Api::getMetaData
      */
     final public function testApiShouldUseFileContentsToGuessMimeTypeWhenExtensionUnavailable()
     {
@@ -363,7 +400,42 @@ class ApiTest extends \PHPUnit_Framework_TestCase
 
         $actual = $api->guessMimeType(self::MOCK_FILE_PATH);
 
-        $this->assertEquals($expected, $actual);
+        self::assertEquals($expected, $actual);
+    }
+
+    /**
+     * @covers ::guessMimeType
+     *
+     * @uses League\Flysystem\Util\MimeType
+     * @uses Potherca\Flysystem\Github\Api::getFileContents
+     * @uses Potherca\Flysystem\Github\Api::getMetaData
+     */
+    final public function testApiShouldGuessMimeTypeCorrectlyWhenGivenPathIsDirectory()
+    {
+        $api = $this->api;
+
+        $expected = $api::MIME_TYPE_DIRECTORY;
+
+        $mockVendor = 'vendor';
+        $mockPackage = 'package';
+        $mockReference = 'reference';
+
+        $this->prepareMockSettings([
+            'getVendor' => $mockVendor,
+            'getPackage' => $mockPackage,
+            'getReference' => $mockReference,
+        ]);
+
+        $this->prepareMockApi(
+            'show',
+            $api::API_REPO,
+            [$mockVendor, $mockPackage, self::MOCK_FOLDER_PATH, $mockReference],
+            [0 => [$api::KEY_TYPE => $api::MIME_TYPE_DIRECTORY]]
+        );
+
+        $actual = $api->guessMimeType(self::MOCK_FOLDER_PATH);
+
+        self::assertEquals($expected, $actual);
     }
 
     /**
@@ -391,7 +463,7 @@ class ApiTest extends \PHPUnit_Framework_TestCase
             ''
         );
 
-        $this->mockClient->expects($this->exactly(1))
+        $this->mockClient->expects(self::exactly(1))
             ->method('authenticate')
         ;
 
@@ -400,7 +472,7 @@ class ApiTest extends \PHPUnit_Framework_TestCase
 
     ////////////////////////////// MOCKS AND STUBS \\\\\\\\\\\\\\\\\\\\\\\\\\\\\
     /**
-     * @return Client|\PHPUnit_Framework_MockObject_MockObject
+     * @return Client|MockObject
      */
     private function getMockClient()
     {
@@ -410,7 +482,7 @@ class ApiTest extends \PHPUnit_Framework_TestCase
     }
 
     /**
-     * @return Settings|\PHPUnit_Framework_MockObject_MockObject
+     * @return Settings|MockObject
      */
     private function getMockSettings()
     {
@@ -425,14 +497,27 @@ class ApiTest extends \PHPUnit_Framework_TestCase
      * @param mixed $apiOutput
      * @param string $repositoryClass
      */
-    private function prepareMockApi($method, $apiName, $apiParameters, $apiOutput, $repositoryClass = Contents::class)
-    {
+    private function prepareMockApi(
+        $method,
+        $apiName,
+        $apiParameters,
+        $apiOutput,
+        $repositoryClass = Contents::class
+    ) {
 
         $parts = explode('\\', $repositoryClass);
         $repositoryName = strtolower(array_pop($parts));
 
+        $methods = [$repositoryName, 'getPerPage', 'setPerPage'];
+
+        $shouldMockCommitsRepository = false;
+        if (in_array('commits', $methods, true) === false) {
+            $shouldMockCommitsRepository = true;
+            $methods[] = 'commits';
+        }
+
         $mockApi = $this->getMockBuilder(ApiInterface::class)
-            ->setMethods([$repositoryName, 'getPerPage', 'setPerPage'])
+            ->setMethods($methods)
             ->getMock()
         ;
 
@@ -441,23 +526,45 @@ class ApiTest extends \PHPUnit_Framework_TestCase
             ->getMock()
         ;
 
-        $mockRepository->expects($this->exactly(1))
+        $mockRepository->expects(self::exactly(1))
             ->method($method)
             ->withAnyParameters()
             ->willReturnCallback(function () use ($apiParameters, $apiOutput) {
-                $this->assertEquals($apiParameters, func_get_args());
+                self::assertEquals($apiParameters, func_get_args());
                 return $apiOutput;
             })
         ;
 
-        $mockApi->expects($this->exactly(1))
+        $mockApi->expects(self::exactly(1))
             ->method($repositoryName)
             ->willReturn($mockRepository)
         ;
 
-        $this->mockClient->expects($this->exactly(1))
+        if ($shouldMockCommitsRepository === true) {
+            $mockCommitsRepository = $this->getMockBuilder(Commits::class)
+                ->disableOriginalConstructor()
+                ->getMock()
+            ;
+
+            $apiOutput = [
+                ['commit' => ['committer' => ['date' => '20150101']]],
+                ['commit' => ['committer' => ['date' => '20140202']]]
+            ];
+
+            $mockCommitsRepository->expects(self::any())
+                ->method('all')
+                ->withAnyParameters()
+                ->willReturn($apiOutput)
+            ;
+            $mockApi->expects(self::any())
+                ->method('commits')
+                ->willReturn($mockCommitsRepository)
+            ;
+        }
+
+        $this->mockClient->expects(self::any())
             ->method('api')
-            ->with($apiName)
+            ->with(self::matchesRegularExpression(sprintf('/%s|repo/', $apiName)))
             ->willReturn($mockApi)
         ;
     }
@@ -468,7 +575,7 @@ class ApiTest extends \PHPUnit_Framework_TestCase
     private function prepareMockSettings(array $expectations)
     {
         foreach ($expectations as $methodName => $returnValue) {
-            $this->mockSettings->expects($this->exactly(1))
+            $this->mockSettings->expects(self::any())
                 ->method($methodName)
                 ->willReturn($returnValue)
             ;
@@ -476,11 +583,11 @@ class ApiTest extends \PHPUnit_Framework_TestCase
     }
 
     /**
-     * @param $truncated
-     * @param $api
+     * @param bool $truncated
+     * @param Api $api
      * @return array
      */
-    private function getMockApiTreeResponse($truncated, $api)
+    private function getMockApiTreeResponse($truncated, Api $api)
     {
         return [
             $api::KEY_TREE => [
@@ -561,239 +668,274 @@ class ApiTest extends \PHPUnit_Framework_TestCase
     final public  function provideExpectedMetadata()
     {
         return [
-            'Filepath, not recursive, not truncated' => [
-                self::MOCK_FILE_PATH,
-                [
+            'Filepath, not recursive, not truncated' => [[
+                'path' => self::MOCK_FILE_PATH,
+                'expected' => [
                     [
                         'path' => '/path/to/mock/file',
-                        'mode' => 100644,
+                        'mode' => '100644',
                         'type' => 'dir',
                         'size' => 57,
                         'name' => '/path/to/mock/file',
-                        'contents' => null,
-                        'stream' => null,
+                        'contents' => false,
+                        'stream' => false,
                         'timestamp' => null,
                         'visibility' => 'public'
                     ],
                     [
                         'path' => '/path/to/mock/fileFoo',
                         'basename' => '/path/to/mock/fileFoo',
-                        'mode' => 100644,
+                        'mode' => '100644',
                         'type' => 'file',
                         'size' => 57,
                         'name' => '/path/to/mock/fileFoo',
-                        'contents' => null,
-                        'stream' => null,
-                        'timestamp' => null,
-                        'visibility' => 'public'
-                    ]
-                ],
-                false,
-                false
-            ],
-            'Filepath, recursive, not truncated' => [
-                self::MOCK_FILE_PATH,
-                [
-                    [
-                        'path' => '/path/to/mock/file',
-                        'mode' => 100644,
-                        'type' => 'dir',
-                        'size' => 57,
-                        'name' => '/path/to/mock/file',
-                        'contents' => null,
-                        'stream' => null,
-                        'timestamp' => null,
-                        'visibility' => 'public'
-                    ],
-                    [
-                        'path' => '/path/to/mock/fileFoo',
-                        'basename' => '/path/to/mock/fileFoo',
-                        'mode' => 100644,
-                        'type' => 'file',
-                        'size' => 57,
-                        'name' => '/path/to/mock/fileFoo',
-                        'contents' => null,
-                        'stream' => null,
+                        'contents' => false,
+                        'stream' => false,
                         'timestamp' => null,
                         'visibility' => 'public'
                     ],
                     [
                         'path' => '/path/to/mock/file/Bar',
-                        'mode' => 100644,
-                        'type' => 'file',
-                        'size' => 57,
                         'name' => '/path/to/mock/file/Bar',
-                        'contents' => null,
-                        'stream' => null,
-                        'timestamp' => null,
-                        'visibility' => 'public'
-                    ]
-                ],
-                true,
-                false
-            ],
-            'Filepath, not recursive, truncated' => [
-                self::MOCK_FILE_PATH,
-                [
-                    [
-                        'path' => '/path/to/mock/file',
-                        'mode' => 100644,
-                        'type' => 'dir',
-                        'size' => 57,
-                        'name' => '/path/to/mock/file',
-                        'contents' => null,
-                        'stream' => null,
-                        'timestamp' => null,
-                        'visibility' => 'public'
-                    ],
-                    [
-                        'path' => '/path/to/mock/fileFoo',
-                        'basename' => '/path/to/mock/fileFoo',
-                        'mode' => 100644,
+                        'mode' => '100644',
                         'type' => 'file',
                         'size' => 57,
-                        'name' => '/path/to/mock/fileFoo',
-                        'contents' => null,
-                        'stream' => null,
-                        'timestamp' => null,
-                        'visibility' => 'public'
-                    ]
-                ],
-                false,
-                true
-            ],
-            'No Filepath, recursive, not truncated' => [
-                '',
-                [
-                    [
-                        'path' => '/path/to/mock/file',
-                        'mode' => 100644,
-                        'type' => 'dir',
-                        'size' => 57,
-                        'name' => '/path/to/mock/file',
-                        'contents' => null,
-                        'stream' => null,
-                        'timestamp' => null,
-                        'visibility' => 'public'
-                    ],
-                    [
-                        'path' => '/path/to/mock/fileFoo',
-                        'basename' => '/path/to/mock/fileFoo',
-                        'mode' => 100644,
-                        'type' => 'file',
-                        'size' => 57,
-                        'name' => '/path/to/mock/fileFoo',
-                        'contents' => null,
-                        'stream' => null,
-                        'timestamp' => null,
-                        'visibility' => 'public'
-                    ],
-                    [
-                        'path' => '/path/to/mock/file/Bar',
-                        'mode' => 100644,
-                        'type' => 'file',
-                        'size' => 57,
-                        'name' => '/path/to/mock/file/Bar',
-                        'contents' => null,
-                        'stream' => null,
-                        'timestamp' => null,
-                        'visibility' => 'public'
-                    ],
-                    [
-                        'path' => 'some/other/file',
-                        'mode' => 100644,
-                        'type' => 'file',
-                        'size' => 747,
-                        'name' => 'some/other/file',
-                        'contents' => null,
-                        'stream' => null,
-                        'timestamp' => null,
-                        'visibility' => 'public'
-                    ]
-                ],
-                true,
-                false
-            ],
-            'No Filepath, recursive, truncated' => [
-                '',
-                [
-                    [
-                        'path' => '/path/to/mock/file',
-                        'mode' => 100644,
-                        'type' => 'dir',
-                        'size' => 57,
-                        'name' => '/path/to/mock/file',
-                        'contents' => null,
-                        'stream' => null,
-                        'timestamp' => null,
-                        'visibility' => 'public'
-                    ],
-                    [
-                        'path' => '/path/to/mock/fileFoo',
-                        'basename' => '/path/to/mock/fileFoo',
-                        'mode' => 100644,
-                        'type' => 'file',
-                        'size' => 57,
-                        'name' => '/path/to/mock/fileFoo',
-                        'contents' => null,
-                        'stream' => null,
-                        'timestamp' => null,
-                        'visibility' => 'public'
-                    ],
-                    [
-                        'path' => '/path/to/mock/file/Bar',
-                        'mode' => 100644,
-                        'type' => 'file',
-                        'size' => 57,
-                        'name' => '/path/to/mock/file/Bar',
-                        'contents' => null,
-                        'stream' => null,
-                        'timestamp' => null,
-                        'visibility' => 'public'
-                    ],
-                    [
-                        'path' => 'some/other/file',
-                        'mode' => 100644,
-                        'type' => 'file',
-                        'size' => 747,
-                        'name' => 'some/other/file',
-                        'contents' => null,
-                        'stream' => null,
-                        'timestamp' => null,
-                        'visibility' => 'public'
-                    ]
-                ],
-                true,
-                true
-            ],
-            'No Filepath, not recursive, truncated' => [
-                '',
-                [
-                    [
-                        'name' => null,
-                        'visibility' => null,
-                        'contents' => null,
-                        'stream' => null,
+                        'visibility' => 'public',
+                        'contents' => false,
+                        'stream' => false,
                         'timestamp' => null
-                    ]
+                    ],
                 ],
-                false,
-                true
-            ],
-            'No Filepath, not recursive, not truncated' => [
-                '',
-                [
+                'recursive' => false,
+                'truncated' => false,
+            ]],
+            'Filepath, recursive, not truncated' => [[
+                'path' => self::MOCK_FILE_PATH,
+                'expected' => [
                     [
-                        'name' => null,
-                        'visibility' => null,
-                        'contents' => null,
-                        'stream' => null,
+                        'path' => '/path/to/mock/file',
+                        'mode' => '100644',
+                        'type' => 'dir',
+                        'size' => 57,
+                        'name' => '/path/to/mock/file',
+                        'contents' => false,
+                        'stream' => false,
                         'timestamp' => null,
+                        'visibility' => 'public'
+                    ],
+                    [
+                        'path' => '/path/to/mock/fileFoo',
+                        'basename' => '/path/to/mock/fileFoo',
+                        'mode' => '100644',
+                        'type' => 'file',
+                        'size' => 57,
+                        'name' => '/path/to/mock/fileFoo',
+                        'contents' => false,
+                        'stream' => false,
+                        'timestamp' => null,
+                        'visibility' => 'public'
+                    ],
+                    [
+                        'path' => '/path/to/mock/file/Bar',
+                        'mode' => '100644',
+                        'type' => 'file',
+                        'size' => 57,
+                        'name' => '/path/to/mock/file/Bar',
+                        'contents' => false,
+                        'stream' => false,
+                        'timestamp' => null,
+                        'visibility' => 'public'
                     ]
                 ],
-                false,
-                false
-            ],
+                'recursive' => true,
+                'truncated' => false,
+            ]],
+            'Filepath, not recursive, truncated' => [[
+                'path' => self::MOCK_FILE_PATH,
+                'expected' => [
+                    [
+                        'path' => '/path/to/mock/file',
+                        'mode' => '100644',
+                        'type' => 'dir',
+                        'size' => 57,
+                        'name' => '/path/to/mock/file',
+                        'contents' => false,
+                        'stream' => false,
+                        'timestamp' => null,
+                        'visibility' => 'public'
+                    ],
+                    [
+                        'path' => '/path/to/mock/fileFoo',
+                        'basename' => '/path/to/mock/fileFoo',
+                        'mode' => '100644',
+                        'type' => 'file',
+                        'size' => 57,
+                        'name' => '/path/to/mock/fileFoo',
+                        'contents' => false,
+                        'stream' => false,
+                        'timestamp' => null,
+                        'visibility' => 'public'
+                    ],
+                    [
+                        'path' => '/path/to/mock/file/Bar',
+                        'name' => '/path/to/mock/file/Bar',
+                        'mode' => '100644',
+                        'type' => 'file',
+                        'size' => 57,
+                        'visibility' => 'public',
+                        'contents' => false,
+                        'stream' => false,
+                        'timestamp' => null
+                    ],
+                ],
+                'recursive' => false,
+                'truncated' => true,
+            ]],
+            'Filepath, recursive, truncated' => [[
+                'path' => self::MOCK_FILE_PATH,
+                'expected' => [
+                    [
+                        'path' => '/path/to/mock/file',
+                        'mode' => '100644',
+                        'type' => 'dir',
+                        'size' => 57,
+                        'name' => '/path/to/mock/file',
+                        'contents' => false,
+                        'stream' => false,
+                        'timestamp' => null,
+                        'visibility' => 'public'
+                    ],
+                    [
+                        'path' => '/path/to/mock/fileFoo',
+                        'basename' => '/path/to/mock/fileFoo',
+                        'mode' => '100644',
+                        'type' => 'file',
+                        'size' => 57,
+                        'name' => '/path/to/mock/fileFoo',
+                        'contents' => false,
+                        'stream' => false,
+                        'timestamp' => null,
+                        'visibility' => 'public'
+                    ],
+                    [
+                        'path' => '/path/to/mock/file/Bar',
+                        'mode' => '100644',
+                        'type' => 'file',
+                        'size' => 57,
+                        'name' => '/path/to/mock/file/Bar',
+                        'contents' => false,
+                        'stream' => false,
+                        'timestamp' => null,
+                        'visibility' => 'public'
+                    ]
+                ],
+                'recursive' => true,
+                'truncated' => true,
+            ]],
+            'No Filepath, recursive, not truncated' => [[
+                'path' => '',
+                'expected' => [
+                    [
+                        'path' => '/path/to/mock/file',
+                        'mode' => '100644',
+                        'type' => 'dir',
+                        'size' => 57,
+                        'name' => '/path/to/mock/file',
+                        'contents' => false,
+                        'stream' => false,
+                        'timestamp' => null,
+                        'visibility' => 'public'
+                    ],
+                    [
+                        'path' => '/path/to/mock/fileFoo',
+                        'basename' => '/path/to/mock/fileFoo',
+                        'mode' => '100644',
+                        'type' => 'file',
+                        'size' => 57,
+                        'name' => '/path/to/mock/fileFoo',
+                        'contents' => false,
+                        'stream' => false,
+                        'timestamp' => null,
+                        'visibility' => 'public'
+                    ],
+                    [
+                        'path' => '/path/to/mock/file/Bar',
+                        'mode' => '100644',
+                        'type' => 'file',
+                        'size' => 57,
+                        'name' => '/path/to/mock/file/Bar',
+                        'contents' => false,
+                        'stream' => false,
+                        'timestamp' => null,
+                        'visibility' => 'public'
+                    ],
+                    [
+                        'path' => 'some/other/file',
+                        'mode' => '100644',
+                        'type' => 'file',
+                        'size' => 747,
+                        'name' => 'some/other/file',
+                        'contents' => false,
+                        'stream' => false,
+                        'timestamp' => null,
+                        'visibility' => 'public'
+                    ]
+                ],
+                'recursive' => true,
+                'truncated' => false,
+            ]],
+            'No Filepath, recursive, truncated' => [[
+                'path' => '',
+                'expected' => [
+                    [
+                        'path' => '/path/to/mock/file',
+                        'mode' => '100644',
+                        'type' => 'dir',
+                        'size' => 57,
+                        'name' => '/path/to/mock/file',
+                        'contents' => false,
+                        'stream' => false,
+                        'timestamp' => null,
+                        'visibility' => 'public'
+                    ],
+                    [
+                        'path' => '/path/to/mock/fileFoo',
+                        'basename' => '/path/to/mock/fileFoo',
+                        'mode' => '100644',
+                        'type' => 'file',
+                        'size' => 57,
+                        'name' => '/path/to/mock/fileFoo',
+                        'contents' => false,
+                        'stream' => false,
+                        'timestamp' => null,
+                        'visibility' => 'public'
+                    ],
+                    [
+                        'path' => '/path/to/mock/file/Bar',
+                        'mode' => '100644',
+                        'type' => 'file',
+                        'size' => 57,
+                        'name' => '/path/to/mock/file/Bar',
+                        'contents' => false,
+                        'stream' => false,
+                        'timestamp' => null,
+                        'visibility' => 'public'
+                    ],
+                    [
+                        'path' => 'some/other/file',
+                        'mode' => '100644',
+                        'type' => 'file',
+                        'size' => 747,
+                        'name' => 'some/other/file',
+                        'contents' => false,
+                        'stream' => false,
+                        'timestamp' => null,
+                        'visibility' => 'public'
+                    ]
+                ],
+                'recursive' => true,
+                'truncated' => true,
+            ]],
         ];
     }
 }
