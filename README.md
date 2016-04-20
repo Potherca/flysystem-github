@@ -89,10 +89,23 @@ $filesystem = new Filesystem($adapter);
 
 ## Testing
 
+The unit-tests can be run with the following command:
+
 ``` bash
 $ composer test
 ```
 
+To run integration tests, which use the Github API, a [Github API token](https://help.github.com/articles/creating-an-access-token-for-command-line-use/) might be needed (to stop the tests hitting the API Limit).
+An API key can be added by setting in the environment as `GITHUB_API_KEY` or by vreating an `.env` file in the integration tests directory and setting it there.
+See `tests/integration-tests/.env.example` for an example.
+
+To run the integration test, run the following command (this will also run the unit-tests):
+
+``` bash
+$ composer test-all
+```
+
+ 
 ## Security
 
 If you discover any security related issues, please email potherca@gmail.com instead of using the issue tracker.
