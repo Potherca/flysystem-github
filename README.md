@@ -95,7 +95,7 @@ The unit-tests can be run with the following command:
 $ composer test
 ```
 
-To run integration tests, which use the Github API, a [Github API token](https://help.github.com/articles/creating-an-access-token-for-command-line-use/) might be needed (to stop the tests hitting the API Limit).
+To run integration tests, which use the Github API, a [Github API token] might be needed (to stop the tests hitting the API Limit).
 An API key can be added by setting it in the environment as `GITHUB_API_KEY` or by creating an `.env` file in the integration tests directory and setting it there.
 See `tests/integration-tests/.env.example` for an example.
 
@@ -111,15 +111,16 @@ If you discover any security related issues, please email potherca@gmail.com ins
 
 ## Contributing
 
-Please see [CONTRIBUTING](CONTRIBUTING.md) for details.
+Please see [CONTRIBUTING] for details.
 
 ## Change Log
 
-Please see [CHANGELOG](CHANGELOG.md) for details.
+Please see [CHANGELOG] for details.
 
 ## Credits
 
-- [Potherca](https://github.com/potherca)
+- [Potherca]
+- [Contributors]
 
 ## License
 
@@ -138,3 +139,9 @@ The MIT License (MIT). Please see [License File] for more information.
 [Coverage Status Badge]: https://coveralls.io/repos/potherca/flysystem-github/badge.svg
 [Quality Score Badge]: https://img.shields.io/scrutinizer/g/potherca/flysystem-github.svg
 [Total Downloads Badge]: https://img.shields.io/packagist/dt/potherca/flysystem-github.svg
+
+[Contributors]: https://github.com/Potherca/flysystem-github/graphs/contributors
+[CHANGELOG]: CHANGELOG.md
+[CONTRIBUTING]: CONTRIBUTING.md
+[Potherca]: https://github.com/potherca
+[Github API token]: https://help.github.com/articles/creating-an-access-token-for-command-line-use/
