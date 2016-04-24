@@ -61,7 +61,7 @@ class Api implements ApiInterface
      */
     private function getApi($name)
     {
-        $this->authenticate();
+        $this->assureAuthenticated();
         return $this->client->api($name);
     }
 
@@ -317,7 +317,7 @@ class Api implements ApiInterface
      *
      * @throws \Github\Exception\InvalidArgumentException If no authentication method was given
      */
-    private function authenticate()
+    private function assureAuthenticated()
     {
         if ($this->isAuthenticationAttempted === false) {
             $credentials = $this->settings->getCredentials();
