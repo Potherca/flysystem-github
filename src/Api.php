@@ -48,6 +48,8 @@ class Api implements \Potherca\Flysystem\Github\ApiInterface
     private $apiCollection = [];
     /** @var Client */
     private $client;
+    /** @var array */
+    private $commits = [];
     /** @var bool */
     private $isAuthenticationAttempted = false;
     /** @var SettingsInterface */
@@ -437,14 +439,18 @@ class Api implements \Potherca\Flysystem\Github\ApiInterface
      */
     private function commitsForFile($path)
     {
-        return $this->getCommitsApi()->all(
-            $this->settings->getVendor(),
-            $this->settings->getPackage(),
-            array(
-                'sha' => $this->settings->getBranch(),
-                'path' => $path
-            )
-        );
+        if (array_key_exists($path, $this->commits) === false) {
+            $this->commits[$path] = $this->getCommitsApi()->all(
+                $this->settings->getVendor(),
+                $this->settings->getPackage(),
+                array(
+                    'sha' => $this->settings->getBranch(),
+                    'path' => $path
+                )
+            );
+        }
+
+        return $this->commits[$path];
     }
 
     /**
