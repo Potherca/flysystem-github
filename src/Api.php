@@ -2,9 +2,9 @@
 
 namespace Potherca\Flysystem\Github;
 
+use Github\Api\ApiInterface;
 use Github\Api\GitData;
 use Github\Api\Repo;
-use Github\Api\Repository\Contents;
 use Github\Client;
 use Github\Exception\RuntimeException;
 use League\Flysystem\AdapterInterface;
@@ -13,14 +13,16 @@ use League\Flysystem\Util\MimeType;
 /**
  * Facade class for the Github Api Library
  */
-class Api implements ApiInterface
+class Api implements \Potherca\Flysystem\Github\ApiInterface
 {
     ////////////////////////////// CLASS PROPERTIES \\\\\\\\\\\\\\\\\\\\\\\\\\\\
     const ERROR_NO_NAME = 'Could not set name for entry';
     const ERROR_NOT_FOUND = 'Not Found';
 
     const API_GIT_DATA = 'gitData';
-    const API_REPO = 'repo';
+    const API_REPOSITORY = 'repo';
+    const API_REPOSITORY_COMMITS = 'commits';
+    const API_REPOSITORY_CONTENTS = 'contents';
 
     const KEY_BLOB = 'blob';
     const KEY_DIRECTORY = 'dir';
@@ -36,16 +38,16 @@ class Api implements ApiInterface
     const KEY_TREE = 'tree';
     const KEY_TYPE = 'type';
     const KEY_VISIBILITY = 'visibility';
-    
+
     const GITHUB_API_URL = 'https://api.github.com';
     const GITHUB_URL = 'https://github.com';
 
     const MIME_TYPE_DIRECTORY = 'directory';
 
+    /** @var ApiInterface[] */
+    private $apiCollection = [];
     /** @var Client */
     private $client;
-    /** @var Contents */
-    private $contents;
     /** @var bool */
     private $isAuthenticationAttempted = false;
     /** @var SettingsInterface */
@@ -62,7 +64,35 @@ class Api implements ApiInterface
     private function getApi($name)
     {
         $this->assureAuthenticated();
-        return $this->client->api($name);
+
+        if (array_key_exists($name, $this->apiCollection) === false) {
+            $this->apiCollection[$name] = $this->client->api($name);
+        }
+
+        return $this->apiCollection[$name];
+    }
+
+    /**
+     * @param $name
+     * @param $api
+     * @return ApiInterface
+     */
+    private function getApiFrom($name, $api)
+    {
+        if (array_key_exists($name, $this->apiCollection) === false) {
+            $this->apiCollection[$name] = $api->{$name}();
+        }
+        return $this->apiCollection[$name];
+    }
+
+    /**
+     * @return \Github\Api\Repository\Commits
+     *
+     * @throws \Github\Exception\InvalidArgumentException
+     */
+    private function getCommitsApi()
+    {
+        return $this->getApiFrom(self::API_REPOSITORY_COMMITS, $this->getRepositoryApi());
     }
 
     /**
@@ -72,10 +102,7 @@ class Api implements ApiInterface
      */
     private function getContentApi()
     {
-        if ($this->contents === null) {
-            $this->contents = $this->getRepositoryApi()->contents();
-        }
-        return $this->contents;
+        return $this->getApiFrom(self::API_REPOSITORY_CONTENTS, $this->getRepositoryApi());
     }
 
     /**
@@ -95,7 +122,7 @@ class Api implements ApiInterface
      */
     private function getRepositoryApi()
     {
-        return $this->getApi(self::API_REPO);
+        return $this->getApi(self::API_REPOSITORY);
     }
 
     //////////////////////////////// PUBLIC API \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
@@ -289,6 +316,7 @@ class Api implements ApiInterface
         //@NOTE: The github API does not return a MIME type, so we have to guess :-(
         $meta = $this->getMetaData($path);
 
+        /** @noinspection OffsetOperationsInspection *//* @NOTE: The existence of $meta[self::KEY_TYPE] has been validated by `hasKey`. */
         if ($this->hasKey($meta, self::KEY_TYPE) && $meta[self::KEY_TYPE] === self::KEY_DIRECTORY) {
             $mimeType = self::MIME_TYPE_DIRECTORY; // or application/x-directory
         } else {
@@ -309,7 +337,7 @@ class Api implements ApiInterface
         if ($this->isAuthenticationAttempted === false) {
             $credentials = $this->settings->getCredentials();
 
-            if (empty($credentials) === false) {
+            if (count($credentials) !== 0) {
                 $credentials = array_replace(
                     [null, null, null],
                     $credentials
@@ -409,7 +437,7 @@ class Api implements ApiInterface
      */
     private function commitsForFile($path)
     {
-        return $this->getRepositoryApi()->commits()->all(
+        return $this->getCommitsApi()->all(
             $this->settings->getVendor(),
             $this->settings->getPackage(),
             array(
