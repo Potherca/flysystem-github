@@ -66,6 +66,19 @@ class Api implements ApiInterface
     }
 
     /**
+     * @return \Github\Api\Repository\Contents
+     *
+     * @throws \Github\Exception\InvalidArgumentException
+     */
+    private function getContentApi()
+    {
+        if ($this->contents === null) {
+            $this->contents = $this->getRepositoryApi()->contents();
+        }
+        return $this->contents;
+    }
+
+    /**
      * @return GitData
      *
      * @throws \Github\Exception\InvalidArgumentException
@@ -83,19 +96,6 @@ class Api implements ApiInterface
     private function getRepositoryApi()
     {
         return $this->getApi(self::API_REPO);
-    }
-
-    /**
-     * @return \Github\Api\Repository\Contents
-     *
-     * @throws \Github\Exception\InvalidArgumentException
-     */
-    private function getContentApi()
-    {
-        if ($this->contents === null) {
-            $this->contents = $this->getRepositoryApi()->contents();
-        }
-        return $this->contents;
     }
 
     //////////////////////////////// PUBLIC API \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
