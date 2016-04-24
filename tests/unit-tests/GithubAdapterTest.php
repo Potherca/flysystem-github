@@ -35,6 +35,11 @@ class GithubAdapterTest extends \PHPUnit_Framework_TestCase
 
     /////////////////////////////////// TESTS \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
     /**
+     * @param $method
+     * @param $apiMethod
+     * @param $parameters
+     * @param mixed $returnValue
+     *
      * @covers ::has
      * @covers ::read
      * @covers ::listContents
@@ -45,20 +50,18 @@ class GithubAdapterTest extends \PHPUnit_Framework_TestCase
      * @covers ::getVisibility
      *
      * @dataProvider provideReadMethods
-     *
-     * @param $method
-     * @param $apiMethod
-     * @param $parameters
-     * @param mixed $returnValue
      */
-    final public function testAdapterShouldPassParameterToClient($method, $apiMethod, $parameters, $returnValue = null)
-    {
+    final public function testAdapterShouldPassParameterToClientWhenReadMethodsAreCalled(
+        $method, 
+        $apiMethod, 
+        $parameters, 
+        $returnValue = null
+    ) {
         if (is_string($returnValue) && is_file(sprintf('%s/../fixtures/%s.json', __DIR__, $returnValue))) {
             $fixturePath = sprintf('%s/../fixtures/%s.json', __DIR__, $returnValue);
             $fixture = json_decode(file_get_contents($fixturePath), true);
             $returnValue = $fixture['tree'];
         }
-
 
         $mocker = $this->mockClient->expects(self::exactly(1))
             ->method($apiMethod)
@@ -82,7 +85,8 @@ class GithubAdapterTest extends \PHPUnit_Framework_TestCase
             'listContents - File - recursive' => ['listContents', 'getTreeMetadata', [self::MOCK_FILE_PATH, true]],
             'listContents - Folder' => ['listContents', 'getTreeMetadata', [self::MOCK_FOLDER_PATH, false], ''],
             'listContents - Folder - recursive' => ['listContents', 'getTreeMetadata', [self::MOCK_FOLDER_PATH, true], 'listContents-folder-recursive'],
-            'getMetadata' => ['getMetadata', 'getMetadata', [self::MOCK_FILE_PATH]],
+            'getMetadata - File' => ['getMetadata', 'getMetadata', [self::MOCK_FILE_PATH]],
+            'getMetadata - Folder' => ['getMetadata', 'getMetadata', [self::MOCK_FOLDER_PATH]],
             'getSize' => ['getSize', 'getMetadata', [self::MOCK_FILE_PATH]],
             'getMimetype' => ['getMimetype', 'guessMimeType', [self::MOCK_FILE_PATH]],
             'getTimestamp' => ['getTimestamp', 'getLastUpdatedTimestamp', [self::MOCK_FILE_PATH]],
