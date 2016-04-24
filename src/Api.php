@@ -90,7 +90,7 @@ class Api implements ApiInterface
      *
      * @throws \Github\Exception\InvalidArgumentException
      */
-    private function getRepositoryContent()
+    private function getContentApi()
     {
         if ($this->contents === null) {
             $this->contents = $this->getRepositoryApi()->contents();
@@ -118,7 +118,7 @@ class Api implements ApiInterface
      */
     final public function exists($path)
     {
-        return $this->getRepositoryContent()->exists(
+        return $this->getContentApi()->exists(
             $this->settings->getVendor(),
             $this->settings->getPackage(),
             $path,
@@ -136,7 +136,7 @@ class Api implements ApiInterface
      */
     final public function getFileContents($path)
     {
-        return $this->getRepositoryContent()->download(
+        return $this->getContentApi()->download(
             $this->settings->getVendor(),
             $this->settings->getPackage(),
             $path,
@@ -191,7 +191,7 @@ class Api implements ApiInterface
     final public function getMetaData($path)
     {
         try {
-            $metadata = $this->getRepositoryContent()->show(
+            $metadata = $this->getContentApi()->show(
                 $this->settings->getVendor(),
                 $this->settings->getPackage(),
                 $path,
