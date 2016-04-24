@@ -19,7 +19,7 @@ class Api implements ApiInterface
     const ERROR_NO_NAME = 'Could not set name for entry';
     const ERROR_NOT_FOUND = 'Not Found';
 
-    const API_GIT_DATA = 'git';
+    const API_GIT_DATA = 'gitData';
     const API_REPO = 'repo';
 
     const KEY_BLOB = 'blob';
