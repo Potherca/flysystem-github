@@ -3,7 +3,9 @@
 namespace Potherca\Flysystem\Github;
 
 use Github\Api\ApiInterface;
+use Github\Api\GitData;
 use Github\Api\GitData\Trees;
+use Github\Api\Repo;
 use Github\Api\Repository\Commits;
 use Github\Api\Repository\Contents;
 use Github\Client;
@@ -14,8 +16,11 @@ use PHPUnit_Framework_MockObject_MockObject as MockObject;
  * Tests for the Api class
  *
  * @coversDefaultClass \Potherca\Flysystem\Github\Api
+ *
  * @covers ::<!public>
  * @covers ::__construct
+ *
+ * @uses \Potherca\Flysystem\Github\Api::<public>
  */
 class ApiTest extends \PHPUnit_Framework_TestCase
 {
@@ -100,7 +105,7 @@ class ApiTest extends \PHPUnit_Framework_TestCase
 
         $this->prepareMockApi(
             'download',
-            $api::API_REPO,
+            $api::API_REPOSITORY,
             [$mockVendor, $mockPackage, self::MOCK_FILE_PATH, $mockReference],
             $expected
         );
@@ -131,7 +136,7 @@ class ApiTest extends \PHPUnit_Framework_TestCase
 
         $this->prepareMockApi(
             'exists',
-            $api::API_REPO,
+            $api::API_REPOSITORY,
             [$mockVendor, $mockPackage, self::MOCK_FILE_PATH, $mockReference],
             $expected
         );
@@ -194,7 +199,7 @@ class ApiTest extends \PHPUnit_Framework_TestCase
 
         $this->prepareMockApi(
             'show',
-            $api::API_REPO,
+            $api::API_REPOSITORY,
             [$mockVendor, $mockPackage, self::MOCK_FILE_PATH, $mockReference],
             $expected
         );
@@ -253,6 +258,8 @@ class ApiTest extends \PHPUnit_Framework_TestCase
         );
 
         $expected = [
+            'path' => $mockPath,
+            'timestamp' => 1459698679,
             'type' => $api::KEY_DIRECTORY,
             'url' => $expectedUrl,
             'html_url' => $expectedHtmlUrl,
@@ -260,8 +267,13 @@ class ApiTest extends \PHPUnit_Framework_TestCase
                 'self' => $expectedUrl,
                 'html' => $expectedHtmlUrl,
             ),
+            'mode' => '040000',
+            'sha' => '30b7e362894eecb159ce0ba2921a8363cd297213',
+            'name' => 'a-directory',
+            'visibility' => 'public',
+            'contents' => false,
+            'stream' => false,
         ];
-
 
         $this->prepareMockSettings([
             'getVendor' => $mockVendor,
@@ -269,12 +281,33 @@ class ApiTest extends \PHPUnit_Framework_TestCase
             'getReference' => $mockReference,
         ]);
 
-        $this->prepareMockApi(
-            'show',
-            $api::API_REPO,
-            [$mockVendor, $mockPackage, $mockPath, $mockReference],
-            [0 => null]
-        );
+        $this->addMocksToClient($this->mockClient, [
+            Repo::class => [
+                Contents::class => [
+                    'method' => 'show',
+                    'exactly' => 1,
+                    'with' => ['mockVendor', 'mockPackage', 'a-directory', 'mockReference'],
+                    'willReturn' => [0 => null]
+                ],
+                Commits::class => [
+                    'method' => 'all',
+                    'exactly' => 3,
+                    'with' => ['mockVendor', 'mockPackage', [
+                        'sha' => null,
+                        'path' => 'a-directory'
+                    ]],
+                    'willReturn' => $this->loadFixture('repos%2Fpotherca-bot%2Ftest-repository%2Fcommits'),
+                ],
+            ],
+            GitData::class => [
+                Trees::class => [
+                    'method' => 'show',
+                    'exactly' => 1,
+                    'with' => ['mockVendor', 'mockPackage', 'mockReference'],
+                    'willReturn' => $this->loadFixture('repos%2Fpotherca-bot%2Ftest-repository%2Fgit%2Ftrees%2FHEAD'),
+                ],
+            ],
+        ]);
 
         $actual = $api->getMetaData($mockPath);
 
@@ -393,7 +426,7 @@ class ApiTest extends \PHPUnit_Framework_TestCase
 
         $this->prepareMockApi(
             'download',
-            $api::API_REPO,
+            $api::API_REPOSITORY,
             [$mockVendor, $mockPackage, self::MOCK_FILE_PATH, $mockReference],
             $contents
         );
@@ -427,8 +460,8 @@ class ApiTest extends \PHPUnit_Framework_TestCase
         ]);
 
         $this->prepareMockApi(
-            'show',
-            $api::API_REPO,
+            'trees',
+            $api::API_GIT_DATA,
             [$mockVendor, $mockPackage, self::MOCK_FOLDER_PATH, $mockReference],
             [0 => [$api::KEY_TYPE => $api::MIME_TYPE_DIRECTORY]]
         );
@@ -458,7 +491,7 @@ class ApiTest extends \PHPUnit_Framework_TestCase
 
         $this->prepareMockApi(
             'exists',
-            $api::API_REPO,
+            $api::API_REPOSITORY,
             [$mockVendor, $mockPackage, self::MOCK_FILE_PATH, $mockReference],
             ''
         );
@@ -490,25 +523,82 @@ class ApiTest extends \PHPUnit_Framework_TestCase
             ->getMock();
     }
 
+    private function addMocksToClient(MockObject $mockClient, array $apiCollection)
+    {
+        $parentApiCollection = [];
+
+        foreach ($apiCollection as $parentApiClass => $children) {
+
+            $mockParentApi = $this->getMockBuilder($parentApiClass)
+                ->disableOriginalConstructor()
+                ->getMock()
+            ;
+
+            foreach ($children as $childApiClass => $properties) {
+                $parts = explode('\\', $childApiClass);
+                $childApiName = strtolower(array_pop($parts));
+
+                $mockChildApi = $this->getMockBuilder($childApiClass)
+                    ->disableOriginalConstructor()
+                    ->getMock()
+                ;
+
+                $returnMethod = 'willReturn';
+                if (is_callable($properties['willReturn'])) {
+                    $returnMethod = 'willReturnCallback';
+                }
+
+                $mockChildApi->expects(self::exactly($properties['exactly']))
+                    ->method($properties['method'])
+                    ->withConsecutive($properties['with'])
+                    ->{$returnMethod}($properties['willReturn'])
+                ;
+
+                $mockParentApi->expects(self::exactly(1))
+                    ->method($childApiName)
+                    ->willReturn($mockChildApi)
+                ;
+            }
+
+            $parts = explode('\\', $parentApiClass);
+            $parentApiName = strtolower(array_pop($parts));
+            $parentApiCollection[$parentApiName] = $mockParentApi;
+        }
+
+        $parentApiCount = count($parentApiCollection);
+        $parentApiNames = array_keys($parentApiCollection);
+        $parentApiNamesPattern = implode('|', $parentApiNames);
+
+        $mockClient->expects(self::exactly($parentApiCount))
+            ->method('api')
+            ->with(self::matchesRegularExpression(sprintf('/%s/i', $parentApiNamesPattern)))
+            ->willReturnCallback(function ($apiName) use ($parentApiCollection) {
+                return $parentApiCollection[strtolower($apiName)];
+            })
+        ;
+    }
+
     /**
+     * @deprecated Use `addMocksToClient` instead.
+     * 
      * @param string $method
      * @param string $apiName
      * @param array $apiParameters
      * @param mixed $apiOutput
-     * @param string $repositoryClass
+     * @param string $childApiClass
      */
     private function prepareMockApi(
         $method,
         $apiName,
         $apiParameters,
         $apiOutput,
-        $repositoryClass = Contents::class
+        $childApiClass = Contents::class
     ) {
 
-        $parts = explode('\\', $repositoryClass);
-        $repositoryName = strtolower(array_pop($parts));
+        $parts = explode('\\', $childApiClass);
+        $childApiName = strtolower(array_pop($parts));
 
-        $methods = [$repositoryName, 'getPerPage', 'setPerPage'];
+        $methods = [$childApiName, 'getPerPage', 'setPerPage'];
 
         $shouldMockCommitsRepository = false;
         if (in_array('commits', $methods, true) === false) {
@@ -516,17 +606,17 @@ class ApiTest extends \PHPUnit_Framework_TestCase
             $methods[] = 'commits';
         }
 
-        $mockApi = $this->getMockBuilder(ApiInterface::class)
+        $mockParentApi = $this->getMockBuilder(ApiInterface::class)
             ->setMethods($methods)
             ->getMock()
         ;
 
-        $mockRepository = $this->getMockBuilder($repositoryClass)
+        $mockChildApi = $this->getMockBuilder($childApiClass)
             ->disableOriginalConstructor()
             ->getMock()
         ;
 
-        $mockRepository->expects(self::exactly(1))
+        $mockChildApi->expects(self::exactly(1))
             ->method($method)
             ->withAnyParameters()
             ->willReturnCallback(function () use ($apiParameters, $apiOutput) {
@@ -535,13 +625,13 @@ class ApiTest extends \PHPUnit_Framework_TestCase
             })
         ;
 
-        $mockApi->expects(self::exactly(1))
-            ->method($repositoryName)
-            ->willReturn($mockRepository)
+        $mockParentApi->expects(self::exactly(1))
+            ->method($childApiName)
+            ->willReturn($mockChildApi)
         ;
 
         if ($shouldMockCommitsRepository === true) {
-            $mockCommitsRepository = $this->getMockBuilder(Commits::class)
+            $mockCommitsApi = $this->getMockBuilder(Commits::class)
                 ->disableOriginalConstructor()
                 ->getMock()
             ;
@@ -551,21 +641,21 @@ class ApiTest extends \PHPUnit_Framework_TestCase
                 ['commit' => ['committer' => ['date' => '20140202']]]
             ];
 
-            $mockCommitsRepository->expects(self::any())
+            $mockCommitsApi->expects(self::any())
                 ->method('all')
                 ->withAnyParameters()
                 ->willReturn($apiOutput)
             ;
-            $mockApi->expects(self::any())
+            $mockParentApi->expects(self::any())
                 ->method('commits')
-                ->willReturn($mockCommitsRepository)
+                ->willReturn($mockCommitsApi)
             ;
         }
 
         $this->mockClient->expects(self::any())
             ->method('api')
             ->with(self::matchesRegularExpression(sprintf('/%s|repo/', $apiName)))
-            ->willReturn($mockApi)
+            ->willReturn($mockParentApi)
         ;
     }
 
@@ -654,7 +744,7 @@ class ApiTest extends \PHPUnit_Framework_TestCase
 
         $this->prepareMockApi(
             'all',
-            Api::API_REPO,
+            Api::API_REPOSITORY,
             $apiParameters,
             $apiOutput,
             Commits::class
@@ -937,5 +1027,31 @@ class ApiTest extends \PHPUnit_Framework_TestCase
                 'truncated' => true,
             ]],
         ];
+    }
+
+    /**
+     * @param $fixtureName
+     * @return mixed
+     */
+    private function loadFixture($fixtureName)
+    {
+        $fixtureDirectory = sprintf('%s/fixtures', dirname(__DIR__));
+        $fixturePath = sprintf('%s/%s.json', $fixtureDirectory, $fixtureName);
+
+        if (is_file($fixturePath) === false) {
+            self::fail(
+                sprintf('Could not find file for fixture "%s"', $fixtureName)
+            );
+        } else {
+            $fixture = json_decode(file_get_contents($fixturePath), true);
+            $lastJsonError = json_last_error();
+            if ($lastJsonError !== JSON_ERROR_NONE) {
+                self::fail(
+                    sprintf('Error Reading Fixture "%s": %s', $fixturePath, json_last_error_msg())
+                );
+            }
+        }
+
+        return $fixture;
     }
 }
