@@ -244,6 +244,7 @@ class Api implements ApiInterface
      * @param bool $recursive
      *
      * @return array
+     *
      * @throws \Github\Exception\InvalidArgumentException
      */
     final public function getTreeMetadata($path, $recursive)
@@ -265,21 +266,7 @@ class Api implements ApiInterface
 
         $normalizeTreeMetadata = $this->normalizeTreeMetadata($treeMetadata);
 
-        $directoryTimestamp = 0000000000;
-
-        array_walk($normalizeTreeMetadata, function (&$entry) use (&$directoryTimestamp) {
-            if ($this->hasKey($entry, self::KEY_TIMESTAMP) === false
-                || $entry[self::KEY_TIMESTAMP] === false
-            ) {
-                $timestamp = $this->getCreatedTimestamp($entry[self::KEY_PATH])['timestamp'];
-
-                $entry[self::KEY_TIMESTAMP] = $timestamp;
-
-                if ($timestamp > $directoryTimestamp) {
-                    $directoryTimestamp = $timestamp;
-                }
-            }
-        });
+        $directoryTimestamp = $this->getDirectoryTimestamp($normalizeTreeMetadata);
 
         /* @FIXME: It might be wise to use a filter to find the right entry instead of always using the first entry in the array. */
 
@@ -525,5 +512,31 @@ class Api implements ApiInterface
         }
 
         return $keyExists;
+    }
+
+    /**
+     * @param array $treeMetadata
+     *
+     * @return int
+     *
+     * @throws \Github\Exception\InvalidArgumentException
+     */
+    private function getDirectoryTimestamp(array $treeMetadata)
+    {
+        $directoryTimestamp = 0000000000;
+
+        array_walk($treeMetadata, function ($entry) use (&$directoryTimestamp) {
+            if ($this->hasKey($entry, self::KEY_TIMESTAMP) === false
+                || $entry[self::KEY_TIMESTAMP] === false
+            ) {
+                $timestamp = $this->getCreatedTimestamp($entry[self::KEY_PATH])['timestamp'];
+
+                if ($timestamp > $directoryTimestamp) {
+                    $directoryTimestamp = $timestamp;
+                }
+            }
+        });
+
+        return $directoryTimestamp;
     }
 }
