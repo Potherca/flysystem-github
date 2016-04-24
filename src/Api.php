@@ -46,10 +46,10 @@ class Api implements ApiInterface
     private $client;
     /** @var Contents */
     private $contents;
-    /** @var SettingsInterface */
-    private $settings;
     /** @var bool */
     private $isAuthenticationAttempted = false;
+    /** @var SettingsInterface */
+    private $settings;
 
     //////////////////////////// SETTERS AND GETTERS \\\\\\\\\\\\\\\\\\\\\\\\\\\
     /**
