@@ -84,7 +84,7 @@ class GithubAdapterTest extends \PHPUnit_Framework_TestCase
             'listContents - File' => ['listContents', 'getTreeMetadata', [self::MOCK_FILE_PATH, false]],
             'listContents - File - recursive' => ['listContents', 'getTreeMetadata', [self::MOCK_FILE_PATH, true]],
             'listContents - Folder' => ['listContents', 'getTreeMetadata', [self::MOCK_FOLDER_PATH, false], ''],
-            'listContents - Folder - recursive' => ['listContents', 'getTreeMetadata', [self::MOCK_FOLDER_PATH, true], 'listContents-folder-recursive'],
+            'listContents - Folder - recursive' => ['listContents', 'getTreeMetadata', [self::MOCK_FOLDER_PATH, true], 'repos%2Fpotherca-bot%2Ftest-repository%2Fgit%2Ftrees%2FHEAD'],
             'getMetadata - File' => ['getMetadata', 'getMetadata', [self::MOCK_FILE_PATH]],
             'getMetadata - Folder' => ['getMetadata', 'getMetadata', [self::MOCK_FOLDER_PATH]],
             'getSize' => ['getSize', 'getMetadata', [self::MOCK_FILE_PATH]],

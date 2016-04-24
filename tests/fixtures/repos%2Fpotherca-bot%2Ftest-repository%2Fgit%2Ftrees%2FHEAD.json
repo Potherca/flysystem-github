@@ -1,4 +1,5 @@
 {
+    "original-source" : "https://api.github.com/repos/potherca-bot/test-repository/git/trees/HEAD?recursive=1",
     "sha": "676a09fd1c7df28938e8c12dc5d9f3c3271f0249",
     "url": "https://api.github.com/repos/potherca-bot/test-repository/git/trees/676a09fd1c7df28938e8c12dc5d9f3c3271f0249",
     "tree": [
