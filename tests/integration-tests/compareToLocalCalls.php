@@ -75,7 +75,7 @@ class CompareToLocalAdapterIntegrationTest extends PHPUnit_Framework_TestCase {
                     $localContents = $localResult->getContents();
                     /** @var array $contents */
                     $contents = $result->getContents();
-                    $this->compare($localContents, $contents);
+                    $this->validateLocalAdapterValuesArePresentInGithubAdapterValues($localContents, $contents);
                 } elseif ($localResult instanceof \League\Flysystem\File) {
                     /** @var $localResult \League\Flysystem\File */
                     /** @var $result \League\Flysystem\File */
@@ -84,13 +84,14 @@ class CompareToLocalAdapterIntegrationTest extends PHPUnit_Framework_TestCase {
                     self::assertEquals($localResult, $result);
                 }
             }],
+            'getMetadata' => ['callback' => [$this, 'validateLocalAdapterValuesArePresentInGithubAdapterValues']],
             'getMimetype' => [],
             'getSize' => [],
             //@FIXME: Synchronize local timestamp with remote git repo timestamp so "getTimestamp" can be tested
             // 'getTimestamp' => [],
             'getVisibility' => [],
             'has' => [],
-            'listContents' => ['type' => 'dir', 'callback' => [$this, 'compare']],
+            'listContents' => ['type' => 'dir', 'callback' => [$this, 'validateLocalAdapterValuesArePresentInGithubAdapterValues']],
             'read' => ['type' => 'file'],
             'readStream' => ['type' => 'file', 'callback' => function ($localStream, $githubStream){
                 self::assertEquals(stream_get_contents($localStream), stream_get_contents($githubStream));
@@ -147,7 +148,7 @@ class CompareToLocalAdapterIntegrationTest extends PHPUnit_Framework_TestCase {
      * @param array $localContents
      * @param array $contents
      */
-    private function compare(array $localContents, array $contents)
+    private function validateLocalAdapterValuesArePresentInGithubAdapterValues(array $localContents, array $contents)
     {
         array_walk($contents, 'ksort');
         array_walk($localContents, 'ksort');
@@ -159,7 +160,7 @@ class CompareToLocalAdapterIntegrationTest extends PHPUnit_Framework_TestCase {
 
         foreach ($localContents as $index => $localContent) {
             foreach ($localContent as $key => $value) {
-                self::assertEquals($value, $contents[$index][$key]);
+                self::assertEquals([$key => $value], [$key => $contents[$index][$key]]);
             }
         }
     }
