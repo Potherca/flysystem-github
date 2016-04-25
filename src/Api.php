@@ -247,35 +247,8 @@ class Api implements \Potherca\Flysystem\Github\ApiInterface
             }
         }
 
-        if (is_array($metadata) === true && $this->isMetadataForDirectory($metadata) === true) {
-            /** @var $metadata array */
-            $project = sprintf('%s/%s', $this->settings->getVendor(), $this->settings->getPackage());
-            $reference = $this->settings->getReference();
-
-            $url = sprintf(
-                '%s/repos/%s/contents/%s?ref=%s',
-                self::GITHUB_API_URL,
-                $project,
-                trim($path, '/'),
-                $reference
-            );
-            $htmlUrl = sprintf(
-                '%s/%s/blob/%s/%s',
-                self::GITHUB_URL,
-                $project,
-                $reference,
-                trim($path, '/')
-            );
-
-            $metadata = [
-                self::KEY_TYPE => self::KEY_DIRECTORY,
-                'url' => $url,
-                'html_url' => $htmlUrl,
-                '_links' => [
-                    'self' => $url,
-                    'html' => $htmlUrl
-                ]
-            ];
+        if ($this->isMetadataForDirectory($metadata) === true) {
+            $metadata = $this->metadataForDirectory($path);
         }
 
         return $metadata;
@@ -538,10 +511,12 @@ class Api implements \Potherca\Flysystem\Github\ApiInterface
     {
         $isDirectory = false;
 
-        $keys = array_keys($metadata);
+        if (is_array($metadata) === true) {
+            $keys = array_keys($metadata);
 
-        if ($keys[0] === 0) {
-            $isDirectory = true;
+            if ($keys[0] === 0) {
+                $isDirectory = true;
+            }
         }
 
         return $isDirectory;
@@ -593,5 +568,46 @@ class Api implements \Potherca\Flysystem\Github\ApiInterface
     private function normalizePathName($path)
     {
         return trim($path, '/');
+    }
+
+    /**
+     * @param $path
+     * @return array
+     * @throws \League\Flysystem\NotSupportedException
+     * @throws \Github\Exception\RuntimeException
+     *
+     * @throws \Github\Exception\InvalidArgumentException
+     */
+    private function metadataForDirectory($path)
+    {
+        $project = sprintf('%s/%s', $this->settings->getVendor(), $this->settings->getPackage());
+        $reference = $this->settings->getReference();
+
+        $url = sprintf(
+            '%s/repos/%s/contents/%s?ref=%s',
+            self::GITHUB_API_URL,
+            $project,
+            trim($path, '/'),
+            $reference
+        );
+        $htmlUrl = sprintf(
+            '%s/%s/blob/%s/%s',
+            self::GITHUB_URL,
+            $project,
+            $reference,
+            trim($path, '/')
+        );
+
+        $metadata = [
+            self::KEY_TYPE => self::KEY_DIRECTORY,
+            'url' => $url,
+            'html_url' => $htmlUrl,
+            '_links' => [
+                'self' => $url,
+                'html' => $htmlUrl
+            ]
+        ];
+        
+        return $metadata;
     }
 }
