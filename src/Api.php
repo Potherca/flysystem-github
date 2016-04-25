@@ -417,7 +417,7 @@ class Api implements \Potherca\Flysystem\Github\ApiInterface
         /* Add directory timestamp */
         $normalizedTreeData = array_map(function ($entry) use ($normalizedTreeData) {
             if ($entry[self::KEY_TYPE] === self::KEY_DIRECTORY) {
-                    $directoryTimestamp = $this->getDirectoryTimestamp($normalizedTreeData);
+                $directoryTimestamp = $this->getDirectoryTimestamp($normalizedTreeData, $entry[self::KEY_PATH]);
                     $entry[self::KEY_TIMESTAMP] = $directoryTimestamp;
             }
             return $entry;
@@ -548,20 +548,24 @@ class Api implements \Potherca\Flysystem\Github\ApiInterface
 
     /**
      * @param array $treeMetadata
+     * @param $path
      *
      * @return int
      *
      * @throws \Github\Exception\InvalidArgumentException
      */
-    private function getDirectoryTimestamp(array $treeMetadata)
+    private function getDirectoryTimestamp(array $treeMetadata, $path)
     {
         $directoryTimestamp = 0000000000;
 
-        array_walk($treeMetadata, function ($entry) use (&$directoryTimestamp) {
-            if ($this->hasKey($entry, self::KEY_TIMESTAMP) === false
-                || $entry[self::KEY_TIMESTAMP] === false
+        $filteredTreeData = $this->filterTreeData($treeMetadata, $path, self::RECURSIVE);
+
+        array_walk($filteredTreeData, function ($entry) use (&$directoryTimestamp, $path) {
+            if ($entry[self::KEY_TYPE] !== self::KEY_DIRECTORY
+                && $entry[self::KEY_TIMESTAMP] !== false
+                && strpos($entry[self::KEY_PATH], $path) === 0
             ) {
-                $timestamp = $this->getCreatedTimestamp($entry[self::KEY_PATH])['timestamp'];
+                $timestamp = $this->getCreatedTimestamp($entry[self::KEY_PATH])[self::KEY_TIMESTAMP];
 
                 if ($timestamp > $directoryTimestamp) {
                     $directoryTimestamp = $timestamp;
