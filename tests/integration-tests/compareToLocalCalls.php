@@ -113,6 +113,7 @@ class CompareToLocalAdapterIntegrationTest extends PHPUnit_Framework_TestCase {
                 }
             }
         }
+
         ksort($files);
 
         return $files;
@@ -150,19 +151,29 @@ class CompareToLocalAdapterIntegrationTest extends PHPUnit_Framework_TestCase {
      */
     private function validateLocalAdapterValuesArePresentInGithubAdapterValues(array $localContents, array $contents)
     {
-        array_walk($contents, 'ksort');
-        array_walk($localContents, 'ksort');
+        if (is_array(reset($localContents))) {
+            array_walk($contents, 'ksort');
+            array_walk($localContents, 'ksort');
 
-        $localContents = array_map(function ($value) {
-            unset($value['timestamp']);
-            return $value;
-        }, $localContents);
+            $localContents = array_map(function ($value) {
+                unset($value['timestamp']);
+                return $value;
+            }, $localContents);
+            foreach ($localContents as $index => $localContent) {
+                foreach ($localContent as $key => $value) {
+                    self::assertEquals([$key => $value], [$key => $contents[$index][$key]]);
+                }
+            }
+        } else {
+            ksort($contents);
+            ksort($localContents);
 
-        foreach ($localContents as $index => $localContent) {
-            foreach ($localContent as $key => $value) {
-                self::assertEquals([$key => $value], [$key => $contents[$index][$key]]);
+            unset($localContents['timestamp']);
+            foreach ($localContents as $index => $localContent) {
+                self::assertEquals([$index => $localContent], [$index => $contents[$index]]);
             }
         }
+
     }
 
     private function getLocalFileSystem()
