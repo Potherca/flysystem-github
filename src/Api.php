@@ -70,7 +70,7 @@ class Api implements \Potherca\Flysystem\Github\ApiInterface
     {
         $this->assureAuthenticated();
 
-        if (array_key_exists($name, $this->apiCollection) === false) {
+        if ($this->hasKey($this->apiCollection, $name) === false) {
             $this->apiCollection[$name] = $this->client->api($name);
         }
 
@@ -84,7 +84,7 @@ class Api implements \Potherca\Flysystem\Github\ApiInterface
      */
     private function getApiFrom($name, $api)
     {
-        if (array_key_exists($name, $this->apiCollection) === false) {
+        if ($this->hasKey($this->apiCollection, $name) === false) {
             $this->apiCollection[$name] = $api->{$name}();
         }
         return $this->apiCollection[$name];
