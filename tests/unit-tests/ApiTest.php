@@ -285,7 +285,7 @@ class ApiTest extends \PHPUnit_Framework_TestCase
                         'sha' => null,
                         'path' => 'a-directory'
                     ]],
-                    'willReturn' => $this->loadFixture('repos%2Fpotherca-bot%2Ftest-repository%2Fcommits'),
+                    'willReturn' => $this->loadFixture('repos/potherca-bot/test-repository/commits'),
                 ],
             ],
             GitData::class => [
@@ -293,7 +293,8 @@ class ApiTest extends \PHPUnit_Framework_TestCase
                     'method' => 'show',
                     'exactly' => 1,
                     'with' => [self::MOCK_VENDOR, self::MOCK_PACKAGE, self::MOCK_REFERENCE],
-                    'willReturn' => $this->loadFixture('repos%2Fpotherca-bot%2Ftest-repository%2Fgit%2Ftrees%2FHEAD'),
+
+                    'willReturn' => $this->loadFixture('repos/potherca-bot/test-repository/git/trees/HEAD'),
                 ],
             ],
         ]);
@@ -1002,6 +1003,8 @@ class ApiTest extends \PHPUnit_Framework_TestCase
      */
     private function loadFixture($fixtureName)
     {
+        $fixtureName = urlencode($fixtureName);
+
         $fixtureDirectory = sprintf('%s/fixtures', dirname(__DIR__));
         $fixturePath = sprintf('%s/%s.json', $fixtureDirectory, $fixtureName);
 
