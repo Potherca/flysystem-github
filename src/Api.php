@@ -150,6 +150,8 @@ class Api implements \Potherca\Flysystem\Github\ApiInterface
      */
     final public function exists($path)
     {
+        $path = $this->normalizePathName($path);
+
         return $this->getContentApi()->exists(
             $this->settings->getVendor(),
             $this->settings->getPackage(),
@@ -168,6 +170,8 @@ class Api implements \Potherca\Flysystem\Github\ApiInterface
      */
     final public function getFileContents($path)
     {
+        $path = $this->normalizePathName($path);
+
         return $this->getContentApi()->download(
             $this->settings->getVendor(),
             $this->settings->getPackage(),
@@ -185,6 +189,8 @@ class Api implements \Potherca\Flysystem\Github\ApiInterface
      */
     final public function getLastUpdatedTimestamp($path)
     {
+        $path = $this->normalizePathName($path);
+
         $commits = $this->commitsForFile($path);
 
         $updated = array_shift($commits);
@@ -203,6 +209,8 @@ class Api implements \Potherca\Flysystem\Github\ApiInterface
      */
     final public function getCreatedTimestamp($path)
     {
+        $path = $this->normalizePathName($path);
+
         $commits = $this->commitsForFile($path);
 
         $created = array_pop($commits);
@@ -222,6 +230,8 @@ class Api implements \Potherca\Flysystem\Github\ApiInterface
      */
     final public function getMetaData($path)
     {
+        $path = $this->normalizePathName($path);
+
         try {
             $metadata = $this->getContentApi()->show(
                 $this->settings->getVendor(),
@@ -281,6 +291,8 @@ class Api implements \Potherca\Flysystem\Github\ApiInterface
      */
     final public function getDirectoryContents($path, $recursive)
     {
+        $path = $this->normalizePathName($path);
+
         // If $info['truncated'] is `true`, the number of items in the tree array
         // exceeded the github maximum limit. If we need to fetch more items,
         // multiple calls will be needed
@@ -318,6 +330,8 @@ class Api implements \Potherca\Flysystem\Github\ApiInterface
      */
     final public function guessMimeType($path)
     {
+        $path = $this->normalizePathName($path);
+
         //@NOTE: The github API does not return a MIME type, so we have to guess :-(
         $meta = $this->getMetaData($path);
 
@@ -367,19 +381,18 @@ class Api implements \Potherca\Flysystem\Github\ApiInterface
      */
     private function extractMetaDataFromTreeInfo(array $tree, $path, $recursive)
     {
-        $matchPath = substr($path, 0, -1);
-        $length = abs(strlen($matchPath) - 1);
+        $length = strlen($path);
 
-        $metadata = array_filter($tree, function ($entry) use ($matchPath, $recursive, $length) {
+        $metadata = array_filter($tree, function ($entry) use ($path, $recursive, $length) {
             $match = false;
 
             $entryPath = $entry[self::KEY_PATH];
 
-            if ($matchPath === '' || strpos($entryPath, $matchPath) === 0) {
+            if ($path === '' || strpos($entryPath, $path) === 0) {
                 if ($recursive === self::RECURSIVE) {
                     $match = true;
                 } else {
-                    $match = ($matchPath !== '' || strpos($entryPath, '/', $length) === false);
+                    $match = ($path !== '' || strpos($entryPath, '/', $length) === false);
                 }
             }
 
@@ -575,5 +588,10 @@ class Api implements \Potherca\Flysystem\Github\ApiInterface
         });
 
         return $directoryTimestamp;
+    }
+
+    private function normalizePathName($path)
+    {
+        return trim($path, '/');
     }
 }

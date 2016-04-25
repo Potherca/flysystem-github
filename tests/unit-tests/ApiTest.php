@@ -106,7 +106,7 @@ class ApiTest extends \PHPUnit_Framework_TestCase
         $this->prepareMockApi(
             'download',
             $api::API_REPOSITORY,
-            [$mockVendor, $mockPackage, self::MOCK_FILE_PATH, $mockReference],
+            [$mockVendor, $mockPackage, trim(self::MOCK_FILE_PATH, '/'), $mockReference],
             $expected
         );
 
@@ -137,7 +137,7 @@ class ApiTest extends \PHPUnit_Framework_TestCase
         $this->prepareMockApi(
             'exists',
             $api::API_REPOSITORY,
-            [$mockVendor, $mockPackage, self::MOCK_FILE_PATH, $mockReference],
+            [$mockVendor, $mockPackage, trim(self::MOCK_FILE_PATH, '/'), $mockReference],
             $expected
         );
 
@@ -200,7 +200,7 @@ class ApiTest extends \PHPUnit_Framework_TestCase
         $this->prepareMockApi(
             'show',
             $api::API_REPOSITORY,
-            [$mockVendor, $mockPackage, self::MOCK_FILE_PATH, $mockReference],
+            [$mockVendor, $mockPackage, trim(self::MOCK_FILE_PATH, '/'), $mockReference],
             $expected
         );
 
@@ -427,7 +427,7 @@ class ApiTest extends \PHPUnit_Framework_TestCase
         $this->prepareMockApi(
             'download',
             $api::API_REPOSITORY,
-            [$mockVendor, $mockPackage, self::MOCK_FILE_PATH, $mockReference],
+            [$mockVendor, $mockPackage, trim(self::MOCK_FILE_PATH, '/'), $mockReference],
             $contents
         );
 
@@ -492,7 +492,7 @@ class ApiTest extends \PHPUnit_Framework_TestCase
         $this->prepareMockApi(
             'exists',
             $api::API_REPOSITORY,
-            [$mockVendor, $mockPackage, self::MOCK_FILE_PATH, $mockReference],
+            [$mockVendor, $mockPackage, trim(self::MOCK_FILE_PATH, '/'), $mockReference],
             ''
         );
 
@@ -731,7 +731,7 @@ class ApiTest extends \PHPUnit_Framework_TestCase
             $mockPackage,
             [
                 'sha' => $mockBranch,
-                'path' => self::MOCK_FILE_PATH
+                'path' => trim(self::MOCK_FILE_PATH, '/')
             ]
 
         ];
