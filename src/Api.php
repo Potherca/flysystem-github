@@ -284,19 +284,9 @@ class Api implements \Potherca\Flysystem\Github\ApiInterface
             self::RECURSIVE //@NOTE: To retrieve all needed date the 'recursive' flag should always be 'true'
         );
 
-        $path = rtrim($path, '/') . '/';
+        $filteredTreeData = $this->filterTreeData($info[self::KEY_TREE], $path, $recursive);
 
-        $treeMetadata = $this->filterTreeData($info[self::KEY_TREE], $path, $recursive);
-
-        $normalizeTreeMetadata = $this->normalizeTreeMetadata($treeMetadata);
-
-        $directoryTimestamp = $this->getDirectoryTimestamp($normalizeTreeMetadata);
-
-        /* @FIXME: It might be wise to use a filter to find the right entry instead of always using the first entry in the array. */
-
-        $normalizeTreeMetadata[0]['timestamp'] = $directoryTimestamp;
-
-        return $normalizeTreeMetadata;
+        return $this->normalizeTreeData($filteredTreeData);
     }
 
     /**
@@ -398,19 +388,21 @@ class Api implements \Potherca\Flysystem\Github\ApiInterface
     }
 
     /**
-     * @param array $metadata
+     * @param array $treeData
      *
      * @return array
+     *
+     * @throws \Github\Exception\InvalidArgumentException
      */
-    private function normalizeTreeMetadata($metadata)
+    private function normalizeTreeData($treeData)
     {
-        $result = [];
+        $normalizedTreeData = [];
 
-        if (is_array(current($metadata)) === false) {
-            $metadata = [$metadata];
+        if (is_array(current($treeData)) === false) {
+            $treeData = [$treeData];
         }
 
-        foreach ($metadata as $entry) {
+        $normalizedTreeData = array_map(function ($entry) {
             $this->setEntryName($entry);
             $this->setEntryType($entry);
             $this->setEntryVisibility($entry);
@@ -419,11 +411,19 @@ class Api implements \Potherca\Flysystem\Github\ApiInterface
             $this->setDefaultValue($entry, self::KEY_STREAM);
             $this->setDefaultValue($entry, self::KEY_TIMESTAMP);
 
+            return $entry;
+        }, $treeData);
 
-            $result[] = $entry;
-        }
+        /* Add directory timestamp */
+        $normalizedTreeData = array_map(function ($entry) use ($normalizedTreeData) {
+            if ($entry[self::KEY_TYPE] === self::KEY_DIRECTORY) {
+                    $directoryTimestamp = $this->getDirectoryTimestamp($normalizedTreeData);
+                    $entry[self::KEY_TIMESTAMP] = $directoryTimestamp;
+            }
+            return $entry;
+        }, $normalizedTreeData);
 
-        return $result;
+        return $normalizedTreeData;
     }
 
     /**
