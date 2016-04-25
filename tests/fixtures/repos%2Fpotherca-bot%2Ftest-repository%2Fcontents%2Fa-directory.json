@@ -1,0 +1,34 @@
+[
+  {
+    "name": "another-file.js",
+    "path": "a-directory/another-file.js",
+    "sha": "f542363e1b45aa7a33e5e731678dee18f7a1e729",
+    "size": 52,
+    "url": "https://api.github.com/repos/potherca-bot/test-repository/contents/a-directory/another-file.js?ref=master",
+    "html_url": "https://github.com/potherca-bot/test-repository/blob/master/a-directory/another-file.js",
+    "git_url": "https://api.github.com/repos/potherca-bot/test-repository/git/blobs/f542363e1b45aa7a33e5e731678dee18f7a1e729",
+    "download_url": "https://raw.githubusercontent.com/potherca-bot/test-repository/master/a-directory/another-file.js",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/potherca-bot/test-repository/contents/a-directory/another-file.js?ref=master",
+      "git": "https://api.github.com/repos/potherca-bot/test-repository/git/blobs/f542363e1b45aa7a33e5e731678dee18f7a1e729",
+      "html": "https://github.com/potherca-bot/test-repository/blob/master/a-directory/another-file.js"
+    }
+  },
+  {
+    "name": "readme.txt",
+    "path": "a-directory/readme.txt",
+    "sha": "27f8ec8435cb07992ecf18f9d5494ffc14948368",
+    "size": 31,
+    "url": "https://api.github.com/repos/potherca-bot/test-repository/contents/a-directory/readme.txt?ref=master",
+    "html_url": "https://github.com/potherca-bot/test-repository/blob/master/a-directory/readme.txt",
+    "git_url": "https://api.github.com/repos/potherca-bot/test-repository/git/blobs/27f8ec8435cb07992ecf18f9d5494ffc14948368",
+    "download_url": "https://raw.githubusercontent.com/potherca-bot/test-repository/master/a-directory/readme.txt",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/potherca-bot/test-repository/contents/a-directory/readme.txt?ref=master",
+      "git": "https://api.github.com/repos/potherca-bot/test-repository/git/blobs/27f8ec8435cb07992ecf18f9d5494ffc14948368",
+      "html": "https://github.com/potherca-bot/test-repository/blob/master/a-directory/readme.txt"
+    }
+  }
+]
