@@ -286,7 +286,7 @@ class Api implements \Potherca\Flysystem\Github\ApiInterface
 
         $path = rtrim($path, '/') . '/';
 
-        $treeMetadata = $this->extractMetaDataFromTreeInfo($info[self::KEY_TREE], $path, $recursive);
+        $treeMetadata = $this->filterTreeData($info[self::KEY_TREE], $path, $recursive);
 
         $normalizeTreeMetadata = $this->normalizeTreeMetadata($treeMetadata);
 
@@ -359,7 +359,7 @@ class Api implements \Potherca\Flysystem\Github\ApiInterface
      *
      * @return array
      */
-    private function extractMetaDataFromTreeInfo(array $tree, $path, $recursive)
+    private function filterTreeData(array $tree, $path, $recursive)
     {
         $length = strlen($path);
 
