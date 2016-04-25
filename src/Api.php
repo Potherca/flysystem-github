@@ -591,14 +591,14 @@ class Api implements \Potherca\Flysystem\Github\ApiInterface
      */
     private function metadataForDirectory($path)
     {
-        $project = sprintf('%s/%s', $this->settings->getVendor(), $this->settings->getPackage());
         $reference = $this->settings->getReference();
+        $project = sprintf('%s/%s', $this->settings->getVendor(), $this->settings->getPackage());
 
         $url = sprintf(
             '%s/repos/%s/contents/%s?ref=%s',
             self::GITHUB_API_URL,
             $project,
-            trim($path, '/'),
+            $path,
             $reference
         );
         $htmlUrl = sprintf(
@@ -606,18 +606,27 @@ class Api implements \Potherca\Flysystem\Github\ApiInterface
             self::GITHUB_URL,
             $project,
             $reference,
-            trim($path, '/')
+            $path
         );
 
-        $metadata = [
-            self::KEY_TYPE => self::KEY_DIRECTORY,
-            'url' => $url,
-            'html_url' => $htmlUrl,
-            '_links' => [
-                'self' => $url,
-                'html' => $htmlUrl
+        $directoryContents =  $this->getDirectoryContents($path, self::RECURSIVE);
+
+        $directoryMetadata = array_filter($directoryContents, function ($entry) use ($path) {
+            return $entry[self::KEY_PATH] === $path;
+        });
+
+        $metadata = array_merge(
+            $directoryMetadata[0],
+            [
+                self::KEY_TYPE => self::KEY_DIRECTORY,
+                'url' => $url,
+                'html_url' => $htmlUrl,
+                '_links' => [
+                    'self' => $url,
+                    'html' => $htmlUrl
+                ]
             ]
-        ];
+        );
         
         return $metadata;
     }
