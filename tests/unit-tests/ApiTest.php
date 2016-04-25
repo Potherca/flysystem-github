@@ -25,9 +25,13 @@ use PHPUnit_Framework_MockObject_MockObject as MockObject;
 class ApiTest extends \PHPUnit_Framework_TestCase
 {
     ////////////////////////////////// FIXTURES \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
-    const MOCK_FILE_PATH = '/path/to/mock/file';
     const MOCK_FILE_CONTENTS = 'Mock file contents';
-    const MOCK_FOLDER_PATH = 'a-directory';
+    const MOCK_FILE_PATH = '/a-directory/another-file.js';
+    const MOCK_FOLDER_PATH = 'a-directory/';
+    const MOCK_PACKAGE = 'mockPackage';
+    const MOCK_REFERENCE = 'mockReference';
+    const MOCK_VENDOR = 'mockVendor';
+    const MOCK_BRANCH = 'mockBranch';
 
     /** @var Api */
     private $api;
@@ -49,7 +53,7 @@ class ApiTest extends \PHPUnit_Framework_TestCase
 
     /////////////////////////////////// TESTS \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
     /**
-     * @uses Potherca\Flysystem\Github\Api::exists
+     *
      */
     final public function testApiShouldComplainWhenInstantiatedWithoutClient()
     {
@@ -93,20 +97,16 @@ class ApiTest extends \PHPUnit_Framework_TestCase
 
         $expected = self::MOCK_FILE_CONTENTS;
 
-        $mockVendor = 'vendor';
-        $mockPackage = 'package';
-        $mockReference = 'reference';
-
         $this->prepareMockSettings([
-            'getVendor' => $mockVendor,
-            'getPackage' => $mockPackage,
-            'getReference' => $mockReference,
+            'getVendor' => self::MOCK_VENDOR,
+            'getPackage' => self::MOCK_PACKAGE,
+            'getReference' => self::MOCK_REFERENCE,
         ]);
 
         $this->prepareMockApi(
             'download',
             $api::API_REPOSITORY,
-            [$mockVendor, $mockPackage, trim(self::MOCK_FILE_PATH, '/'), $mockReference],
+            [self::MOCK_VENDOR, self::MOCK_PACKAGE, trim(self::MOCK_FILE_PATH, '/'), self::MOCK_REFERENCE],
             $expected
         );
 
@@ -124,20 +124,16 @@ class ApiTest extends \PHPUnit_Framework_TestCase
 
         $expected = self::MOCK_FILE_CONTENTS;
 
-        $mockVendor = 'vendor';
-        $mockPackage = 'package';
-        $mockReference = 'reference';
-
         $this->prepareMockSettings([
-            'getVendor' => $mockVendor,
-            'getPackage' => $mockPackage,
-            'getReference' => $mockReference,
+            'getVendor' => self::MOCK_VENDOR,
+            'getPackage' => self::MOCK_PACKAGE,
+            'getReference' => self::MOCK_REFERENCE,
         ]);
 
         $this->prepareMockApi(
             'exists',
             $api::API_REPOSITORY,
-            [$mockVendor, $mockPackage, trim(self::MOCK_FILE_PATH, '/'), $mockReference],
+            [self::MOCK_VENDOR, self::MOCK_PACKAGE, trim(self::MOCK_FILE_PATH, '/'), self::MOCK_REFERENCE],
             $expected
         );
 
@@ -187,20 +183,16 @@ class ApiTest extends \PHPUnit_Framework_TestCase
 
         $expected = self::MOCK_FILE_CONTENTS;
 
-        $mockVendor = 'vendor';
-        $mockPackage = 'package';
-        $mockReference = 'reference';
-
         $this->prepareMockSettings([
-            'getVendor' => $mockVendor,
-            'getPackage' => $mockPackage,
-            'getReference' => $mockReference,
+            'getVendor' => self::MOCK_VENDOR,
+            'getPackage' => self::MOCK_PACKAGE,
+            'getReference' => self::MOCK_REFERENCE,
         ]);
 
         $this->prepareMockApi(
             'show',
             $api::API_REPOSITORY,
-            [$mockVendor, $mockPackage, trim(self::MOCK_FILE_PATH, '/'), $mockReference],
+            [self::MOCK_VENDOR, self::MOCK_PACKAGE, trim(self::MOCK_FILE_PATH, '/'), self::MOCK_REFERENCE],
             $expected
         );
 
@@ -234,26 +226,23 @@ class ApiTest extends \PHPUnit_Framework_TestCase
     {
         $api = $this->api;
 
-        $mockPackage = 'mockPackage';
-        $mockPath = self::MOCK_FOLDER_PATH;
-        $mockReference = 'mockReference';
-        $mockVendor = 'mockVendor';
+        $mockPath = trim(self::MOCK_FOLDER_PATH, '/');
 
         $expectedUrl = sprintf(
             '%s/repos/%s/%s/contents/%s?ref=%s',
             $api::GITHUB_API_URL,
-            $mockVendor,
-            $mockPackage,
+            self::MOCK_VENDOR,
+            self::MOCK_PACKAGE,
             $mockPath,
-            $mockReference
+            self::MOCK_REFERENCE
         );
 
         $expectedHtmlUrl = sprintf(
             '%s/%s/%s/blob/%s/%s',
             $api::GITHUB_URL,
-            $mockVendor,
-            $mockPackage,
-            $mockReference,
+            self::MOCK_VENDOR,
+            self::MOCK_PACKAGE,
+            self::MOCK_REFERENCE,
             $mockPath
         );
 
@@ -276,9 +265,9 @@ class ApiTest extends \PHPUnit_Framework_TestCase
         ];
 
         $this->prepareMockSettings([
-            'getVendor' => $mockVendor,
-            'getPackage' => $mockPackage,
-            'getReference' => $mockReference,
+            'getVendor' => self::MOCK_VENDOR,
+            'getPackage' => self::MOCK_PACKAGE,
+            'getReference' => self::MOCK_REFERENCE,
         ]);
 
         $this->addMocksToClient($this->mockClient, [
@@ -286,13 +275,13 @@ class ApiTest extends \PHPUnit_Framework_TestCase
                 Contents::class => [
                     'method' => 'show',
                     'exactly' => 1,
-                    'with' => ['mockVendor', 'mockPackage', 'a-directory', 'mockReference'],
+                    'with' => [self::MOCK_VENDOR, self::MOCK_PACKAGE, trim(self::MOCK_FOLDER_PATH, '/'), self::MOCK_REFERENCE],
                     'willReturn' => [0 => null]
                 ],
                 Commits::class => [
                     'method' => 'all',
                     'exactly' => 3,
-                    'with' => ['mockVendor', 'mockPackage', [
+                    'with' => [self::MOCK_VENDOR, self::MOCK_PACKAGE, [
                         'sha' => null,
                         'path' => 'a-directory'
                     ]],
@@ -303,7 +292,7 @@ class ApiTest extends \PHPUnit_Framework_TestCase
                 Trees::class => [
                     'method' => 'show',
                     'exactly' => 1,
-                    'with' => ['mockVendor', 'mockPackage', 'mockReference'],
+                    'with' => [self::MOCK_VENDOR, self::MOCK_PACKAGE, self::MOCK_REFERENCE],
                     'willReturn' => $this->loadFixture('repos%2Fpotherca-bot%2Ftest-repository%2Fgit%2Ftrees%2FHEAD'),
                 ],
             ],
@@ -357,8 +346,6 @@ class ApiTest extends \PHPUnit_Framework_TestCase
     /**
      * @covers ::getDirectoryContents
      *
-     * @uses         Potherca\Flysystem\Github\Api::getCreatedTimestamp
-     *
      * @dataProvider provideExpectedMetadata
      *
      * @param array $data
@@ -366,20 +353,16 @@ class ApiTest extends \PHPUnit_Framework_TestCase
     final public function testApiShouldRetrieveExpectedContentsWhenAskedToGetDirectoryContents($data) {
         $api = $this->api;
 
-        $mockVendor = 'vendor';
-        $mockPackage = 'package';
-        $mockReference = 'reference';
-
         $this->prepareMockSettings([
-            'getVendor' => $mockVendor,
-            'getPackage' => $mockPackage,
-            'getReference' => $mockReference,
+            'getVendor' => self::MOCK_VENDOR,
+            'getPackage' => self::MOCK_PACKAGE,
+            'getReference' => self::MOCK_REFERENCE,
         ]);
 
         $this->prepareMockApi(
             'show',
             $api::API_GIT_DATA,
-            [$mockVendor, $mockPackage, $mockReference, true],
+            [self::MOCK_VENDOR, self::MOCK_PACKAGE, self::MOCK_REFERENCE, true],
             $this->getMockApiTreeResponse($data['truncated'], $api),
             Trees::class
         );
@@ -407,14 +390,10 @@ class ApiTest extends \PHPUnit_Framework_TestCase
 
         $expected = 'image/png';
 
-        $mockVendor = 'vendor';
-        $mockPackage = 'package';
-        $mockReference = 'reference';
-
         $this->prepareMockSettings([
-            'getVendor' => $mockVendor,
-            'getPackage' => $mockPackage,
-            'getReference' => $mockReference,
+            'getVendor' => self::MOCK_VENDOR,
+            'getPackage' => self::MOCK_PACKAGE,
+            'getReference' => self::MOCK_REFERENCE,
         ]);
 
         $image = imagecreatetruecolor(1,1);
@@ -427,7 +406,7 @@ class ApiTest extends \PHPUnit_Framework_TestCase
         $this->prepareMockApi(
             'download',
             $api::API_REPOSITORY,
-            [$mockVendor, $mockPackage, trim(self::MOCK_FILE_PATH, '/'), $mockReference],
+            [self::MOCK_VENDOR, self::MOCK_PACKAGE, trim(self::MOCK_FILE_PATH, '/'), self::MOCK_REFERENCE],
             $contents
         );
 
@@ -449,20 +428,16 @@ class ApiTest extends \PHPUnit_Framework_TestCase
 
         $expected = $api::MIME_TYPE_DIRECTORY;
 
-        $mockVendor = 'vendor';
-        $mockPackage = 'package';
-        $mockReference = 'reference';
-
         $this->prepareMockSettings([
-            'getVendor' => $mockVendor,
-            'getPackage' => $mockPackage,
-            'getReference' => $mockReference,
+            'getVendor' => self::MOCK_VENDOR,
+            'getPackage' => self::MOCK_PACKAGE,
+            'getReference' => self::MOCK_REFERENCE,
         ]);
 
         $this->prepareMockApi(
             'trees',
             $api::API_GIT_DATA,
-            [$mockVendor, $mockPackage, self::MOCK_FOLDER_PATH, $mockReference],
+            [self::MOCK_VENDOR, self::MOCK_PACKAGE, trim(self::MOCK_FOLDER_PATH, '/'), self::MOCK_REFERENCE],
             [0 => [$api::KEY_TYPE => $api::MIME_TYPE_DIRECTORY]]
         );
 
@@ -472,27 +447,23 @@ class ApiTest extends \PHPUnit_Framework_TestCase
     }
 
     /**
-     * @uses Potherca\Flysystem\Github\Api::exists
+     *
      */
     final public function testApiShouldUseCredentialsWhenTheyHaveBeenGiven()
     {
         $api = $this->api;
 
-        $mockVendor = 'vendor';
-        $mockPackage = 'package';
-        $mockReference = 'reference';
-
         $this->prepareMockSettings([
-            'getVendor' => $mockVendor,
-            'getPackage' => $mockPackage,
-            'getReference' => $mockReference,
+            'getVendor' => self::MOCK_VENDOR,
+            'getPackage' => self::MOCK_PACKAGE,
+            'getReference' => self::MOCK_REFERENCE,
             'getCredentials' => ['foo']
         ]);
 
         $this->prepareMockApi(
             'exists',
             $api::API_REPOSITORY,
-            [$mockVendor, $mockPackage, trim(self::MOCK_FILE_PATH, '/'), $mockReference],
+            [self::MOCK_VENDOR, self::MOCK_PACKAGE, trim(self::MOCK_FILE_PATH, '/'), self::MOCK_REFERENCE],
             ''
         );
 
@@ -716,21 +687,17 @@ class ApiTest extends \PHPUnit_Framework_TestCase
     {
         date_default_timezone_set('UTC');
 
-        $mockVendor = 'vendor';
-        $mockPackage = 'package';
-        $mockBranch = 'branch';
-
         $this->prepareMockSettings([
-            'getVendor' => $mockVendor,
-            'getPackage' => $mockPackage,
-            'getBranch' => $mockBranch,
+            'getVendor' => self::MOCK_VENDOR,
+            'getPackage' => self::MOCK_PACKAGE,
+            'getBranch' => self::MOCK_BRANCH,
         ]);
 
         $apiParameters = [
-            $mockVendor,
-            $mockPackage,
+            self::MOCK_VENDOR,
+            self::MOCK_PACKAGE,
             [
-                'sha' => $mockBranch,
+                'sha' => self::MOCK_BRANCH,
                 'path' => trim(self::MOCK_FILE_PATH, '/')
             ]
 
