@@ -55,6 +55,8 @@ class Api implements \Potherca\Flysystem\Github\ApiInterface
     private $commits = [];
     /** @var bool */
     private $isAuthenticationAttempted = false;
+    /** @var array */
+    private $metadata = [];
     /** @var SettingsInterface */
     private $settings;
 
@@ -227,31 +229,36 @@ class Api implements \Potherca\Flysystem\Github\ApiInterface
      *
      * @throws \Github\Exception\InvalidArgumentException
      * @throws \Github\Exception\RuntimeException
+     * @throws \League\Flysystem\NotSupportedException
      */
     final public function getMetaData($path)
     {
         $path = $this->normalizePathName($path);
 
-        try {
-            $metadata = $this->getContentApi()->show(
-                $this->settings->getVendor(),
-                $this->settings->getPackage(),
-                $path,
-                $this->settings->getReference()
-            );
-        } catch (RuntimeException $exception) {
-            if ($exception->getMessage() === self::ERROR_NOT_FOUND) {
-                $metadata = false;
-            } else {
-                throw $exception;
+        if ($this->hasKey($this->metadata, $path) === false) {
+            try {
+                $metadata = $this->getContentApi()->show(
+                    $this->settings->getVendor(),
+                    $this->settings->getPackage(),
+                    $path,
+                    $this->settings->getReference()
+                );
+            } catch (RuntimeException $exception) {
+                if ($exception->getMessage() === self::ERROR_NOT_FOUND) {
+                    $metadata = false;
+                } else {
+                    throw $exception;
+                }
             }
+    
+            if ($this->isMetadataForDirectory($metadata) === true) {
+                $metadata = $this->metadataForDirectory($path);
+            }
+    
+            $this->metadata[$path] = $metadata;
         }
 
-        if ($this->isMetadataForDirectory($metadata) === true) {
-            $metadata = $this->metadataForDirectory($path);
-        }
-
-        return $metadata;
+        return $this->metadata[$path];
     }
 
     /**
