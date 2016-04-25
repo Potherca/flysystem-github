@@ -355,7 +355,7 @@ class ApiTest extends \PHPUnit_Framework_TestCase
     }
 
     /**
-     * @covers ::getTreeMetadata
+     * @covers ::getDirectoryContents
      *
      * @uses         Potherca\Flysystem\Github\Api::getCreatedTimestamp
      *
@@ -363,7 +363,7 @@ class ApiTest extends \PHPUnit_Framework_TestCase
      *
      * @param array $data
      */
-    final public function testApiShouldRetrieveExpectedMetadataWhenAskedToGetTreeMetadata($data) {
+    final public function testApiShouldRetrieveExpectedContentsWhenAskedToGetDirectoryContents($data) {
         $api = $this->api;
 
         $mockVendor = 'vendor';
@@ -384,7 +384,7 @@ class ApiTest extends \PHPUnit_Framework_TestCase
             Trees::class
         );
 
-        $actual = $api->getTreeMetadata($data['path'], $data['recursive']);
+        $actual = $api->getDirectoryContents($data['path'], $data['recursive']);
 
         $actual = array_map(function ($value) {
             $value['timestamp'] = null;

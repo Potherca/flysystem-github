@@ -81,16 +81,16 @@ class GithubAdapterTest extends \PHPUnit_Framework_TestCase
         return [
             'has' => ['has', 'exists', [self::MOCK_FILE_PATH]],
             'read' => ['read', 'getFileContents', [self::MOCK_FILE_PATH]],
-            'listContents - File' => ['listContents', 'getTreeMetadata', [self::MOCK_FILE_PATH, false]],
-            'listContents - File - recursive' => ['listContents', 'getTreeMetadata', [self::MOCK_FILE_PATH, true]],
-            'listContents - Folder' => ['listContents', 'getTreeMetadata', [self::MOCK_FOLDER_PATH, false], ''],
-            'listContents - Folder - recursive' => ['listContents', 'getTreeMetadata', [self::MOCK_FOLDER_PATH, true], 'repos%2Fpotherca-bot%2Ftest-repository%2Fgit%2Ftrees%2FHEAD'],
+            'listContents - File' => ['listContents', 'getDirectoryContents', [self::MOCK_FILE_PATH, false]],
+            'listContents - File - recursive' => ['listContents', 'getDirectoryContents', [self::MOCK_FILE_PATH, true]],
+            'listContents - Folder' => ['listContents', 'getDirectoryContents', [self::MOCK_FOLDER_PATH, false], ''],
+            'listContents - Folder - recursive' => ['listContents', 'getDirectoryContents', [self::MOCK_FOLDER_PATH, true], 'repos%2Fpotherca-bot%2Ftest-repository%2Fgit%2Ftrees%2FHEAD'],
             'getMetadata - File' => ['getMetadata', 'getMetadata', [self::MOCK_FILE_PATH]],
             'getMetadata - Folder' => ['getMetadata', 'getMetadata', [self::MOCK_FOLDER_PATH]],
             'getSize' => ['getSize', 'getMetadata', [self::MOCK_FILE_PATH]],
             'getMimetype' => ['getMimetype', 'guessMimeType', [self::MOCK_FILE_PATH]],
             'getTimestamp' => ['getTimestamp', 'getLastUpdatedTimestamp', [self::MOCK_FILE_PATH]],
-            'getVisibility' => ['getVisibility', 'getTreeMetadata', [self::MOCK_FILE_PATH]],
+            'getVisibility' => ['getVisibility', 'getDirectoryContents', [self::MOCK_FILE_PATH]],
         ];
     }
 }

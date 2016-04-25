@@ -276,7 +276,7 @@ class Api implements \Potherca\Flysystem\Github\ApiInterface
      *
      * @throws \Github\Exception\InvalidArgumentException
      */
-    final public function getTreeMetadata($path, $recursive)
+    final public function getDirectoryContents($path, $recursive)
     {
         // If $info['truncated'] is `true`, the number of items in the tree array
         // exceeded the github maximum limit. If we need to fetch more items,
