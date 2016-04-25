@@ -44,6 +44,9 @@ class Api implements \Potherca\Flysystem\Github\ApiInterface
 
     const MIME_TYPE_DIRECTORY = 'directory';
 
+    const NOT_RECURSIVE = false;
+    const RECURSIVE = true;
+
     /** @var ApiInterface[] */
     private $apiCollection = [];
     /** @var Client */
@@ -286,7 +289,7 @@ class Api implements \Potherca\Flysystem\Github\ApiInterface
             $this->settings->getVendor(),
             $this->settings->getPackage(),
             $this->settings->getReference(),
-            true //@NOTE: To retrieve all needed date the 'recursive' flag should always be 'true'
+            self::RECURSIVE //@NOTE: To retrieve all needed date the 'recursive' flag should always be 'true'
         );
 
         $path = rtrim($path, '/') . '/';
@@ -373,7 +376,7 @@ class Api implements \Potherca\Flysystem\Github\ApiInterface
             $entryPath = $entry[self::KEY_PATH];
 
             if ($matchPath === '' || strpos($entryPath, $matchPath) === 0) {
-                if ($recursive === true) {
+                if ($recursive === self::RECURSIVE) {
                     $match = true;
                 } else {
                     $match = ($matchPath !== '' || strpos($entryPath, '/', $length) === false);
