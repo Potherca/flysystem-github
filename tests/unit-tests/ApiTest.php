@@ -248,7 +248,7 @@ class ApiTest extends \PHPUnit_Framework_TestCase
 
         $expected = [
             'path' => $mockPath,
-            'timestamp' => 1459698679,
+            'timestamp' => 1450252770,
             'type' => $api::KEY_DIRECTORY,
             'url' => $expectedUrl,
             'html_url' => $expectedHtmlUrl,
@@ -270,31 +270,35 @@ class ApiTest extends \PHPUnit_Framework_TestCase
             'getReference' => self::MOCK_REFERENCE,
         ]);
 
+        $recursiveTreesFixture = $this->loadFixture('repos/potherca-bot/test-repository/git/trees/HEAD?recursive=1');
+
+        $files = array_column($recursiveTreesFixture['tree'], $api::KEY_PATH);
+
         $this->addMocksToClient($this->mockClient, [
             Repo::class => [
+                Commits::class => [
+                    'method' => 'all',
+                    'exactly' => count($files),
+                    'with' => self::callback(function($vendor, $package, $context) use ($files) {
+                        return $vendor === self::MOCK_VENDOR && $package === self::MOCK_PACKAGE && $context['sha'] === null
+                        && preg_match(sprintf('#%s#', implode('|', $files)), $context['path']) === 1;
+                    }),
+                    'willReturn' => $this->loadFixture('repos/potherca-bot/test-repository/commits'),
+                ],
                 Contents::class => [
                     'method' => 'show',
                     'exactly' => 1,
                     'with' => [self::MOCK_VENDOR, self::MOCK_PACKAGE, trim(self::MOCK_FOLDER_PATH, '/'), self::MOCK_REFERENCE],
-                    'willReturn' => [0 => null]
-                ],
-                Commits::class => [
-                    'method' => 'all',
-                    'exactly' => 3,
-                    'with' => [self::MOCK_VENDOR, self::MOCK_PACKAGE, [
-                        'sha' => null,
-                        'path' => 'a-directory'
-                    ]],
-                    'willReturn' => $this->loadFixture('repos/potherca-bot/test-repository/commits'),
+                    'willReturn' => $this->loadFixture('repos/potherca-bot/test-repository/contents/a-directory'),
                 ],
             ],
             GitData::class => [
                 Trees::class => [
                     'method' => 'show',
                     'exactly' => 1,
-                    'with' => [self::MOCK_VENDOR, self::MOCK_PACKAGE, self::MOCK_REFERENCE],
+                    'with' => [self::MOCK_VENDOR, self::MOCK_PACKAGE, self::MOCK_REFERENCE, $api::RECURSIVE],
 
-                    'willReturn' => $this->loadFixture('repos/potherca-bot/test-repository/git/trees/HEAD'),
+                    'willReturn' => $recursiveTreesFixture,
                 ],
             ],
         ]);
@@ -347,11 +351,12 @@ class ApiTest extends \PHPUnit_Framework_TestCase
     /**
      * @covers ::getDirectoryContents
      *
-     * @dataProvider provideExpectedMetadata
+     * @dataProvider provideDirectoryContents
      *
      * @param array $data
      */
-    final public function testApiShouldRetrieveExpectedContentsWhenAskedToGetDirectoryContents($data) {
+    final public function testApiShouldRetrieveExpectedDirectoryContentsWhenAskedToGetDirectoryContents(array $data)
+    {
         $api = $this->api;
 
         $this->prepareMockSettings([
@@ -360,20 +365,104 @@ class ApiTest extends \PHPUnit_Framework_TestCase
             'getReference' => self::MOCK_REFERENCE,
         ]);
 
-        $this->prepareMockApi(
-            'show',
-            $api::API_GIT_DATA,
-            [self::MOCK_VENDOR, self::MOCK_PACKAGE, self::MOCK_REFERENCE, true],
-            $this->getMockApiTreeResponse($data['truncated'], $api),
-            Trees::class
-        );
+        $recursiveTreesFixture = $this->loadFixture('repos/potherca-bot/test-repository/git/trees/HEAD?recursive=1');
+
+        $files = array_column($recursiveTreesFixture['tree'], $api::KEY_PATH);
+
+        $this->addMocksToClient($this->mockClient, [
+            Repo::class => [
+                Commits::class => [
+                    'method' => 'all',
+                    'exactly' => count($files),
+                    'with' => self::callback(function($vendor, $package, $context) use ($files) {
+                        return $vendor === self::MOCK_VENDOR && $package === self::MOCK_PACKAGE && $context['sha'] === null
+                            && preg_match(sprintf('#%s#', implode('|', $files)), $context['path']) === 1;
+                    }),
+                    'willReturn' => $this->loadFixture('repos/potherca-bot/test-repository/commits'),
+                ],
+            ],
+            GitData::class => [
+                Trees::class => [
+                    'method' => 'show',
+                    'exactly' => 1,
+                    'with' => [self::MOCK_VENDOR, self::MOCK_PACKAGE, self::MOCK_REFERENCE, $api::RECURSIVE],
+                    'willReturn' => $recursiveTreesFixture,
+                ],
+            ],
+        ]);
 
         $actual = $api->getDirectoryContents($data['path'], $data['recursive']);
 
-        $actual = array_map(function ($value) {
-            $value['timestamp'] = null;
-            return $value;
-        }, $actual);
+        self::assertEquals($data['expected'], $actual);
+    }
+
+    /**
+     * @covers ::getDirectoryContents
+     *
+     * @dataProvider provideExpectedMetadata
+     *
+     * @param array $data
+     */
+    final public function testApiShouldRetrieveExpectedMetadataWhenAskedToGetMetadata(array $data)
+    {
+        $api = $this->api;
+
+        $this->prepareMockSettings([
+            'getVendor' => self::MOCK_VENDOR,
+            'getPackage' => self::MOCK_PACKAGE,
+            'getReference' => self::MOCK_REFERENCE,
+        ]);
+
+        $treesFixture = $this->loadFixture('repos/potherca-bot/test-repository/git/trees/HEAD?recursive=1');
+
+        $files = array_column($treesFixture['tree'], $api::KEY_PATH);
+
+        $mockApis = [
+            Repo::class => [
+                Commits::class => [
+                    'method' => 'all',
+                    'exactly' => count($files),
+                    'with' => self::callback(function($vendor, $package, $context) use ($files) {
+                        return $vendor === self::MOCK_VENDOR && $package === self::MOCK_PACKAGE && $context['sha'] === null
+                        && preg_match(sprintf('#%s#', implode('|', $files)), $context['path']) === 1;
+                    }),
+                    'willReturn' => $this->loadFixture('repos/potherca-bot/test-repository/commits'),
+                ],
+                Contents::class => [
+                    'method' => 'show',
+                    'exactly' => 1,
+                    'with' => self::callback(function ($vendor, $package, $path, $reference) use ($files) {
+                        return $vendor === self::MOCK_VENDOR && $package === self::MOCK_PACKAGE && $reference === self::MOCK_REFERENCE
+                        && preg_match(sprintf('#%s#', implode('|', $files)), $path) === 1;
+                    }),
+                    'willReturn' => $this->loadFixture('repos/potherca-bot/test-repository/contents/a-directory'),
+                ],
+            ],
+            GitData::class => [
+                Trees::class => [
+                    'method' => 'show',
+                    'exactly' => 1,
+                    'with' => [self::MOCK_VENDOR, self::MOCK_PACKAGE, self::MOCK_REFERENCE, $api::RECURSIVE],
+                    'willReturn' => $treesFixture,
+                ],
+            ],
+        ];
+
+//        if ($data['count'] !== 0) {
+//            $mockApis[Repo::class][Commits::class] = [
+//                'method' => 'all',
+//                'exactly' => $data['count'],
+//                'with' => self::callback(function ($vendor, $package, $context) use ($files) {
+//                    return $vendor === self::MOCK_VENDOR && $package === self::MOCK_PACKAGE && $context['sha'] === null
+//                    && preg_match(sprintf('#%s#', implode('|', $files)), $context['path']) === 1;
+//                }),
+//                'willReturn' => $this->loadFixture('repos/potherca-bot/test-repository/commits'),
+//            ];
+//        }
+
+        $this->addMocksToClient($this->mockClient, $mockApis);
+
+        $actual = $api->getMetaData($data['path']);
 
         self::assertEquals($data['expected'], $actual);
     }
@@ -382,8 +471,6 @@ class ApiTest extends \PHPUnit_Framework_TestCase
      * @covers ::guessMimeType
      *
      * @uses League\Flysystem\Util\MimeType
-     * @uses Potherca\Flysystem\Github\Api::getFileContents
-     * @uses Potherca\Flysystem\Github\Api::getMetaData
      */
     final public function testApiShouldUseFileContentsToGuessMimeTypeWhenExtensionUnavailable()
     {
@@ -420,8 +507,6 @@ class ApiTest extends \PHPUnit_Framework_TestCase
      * @covers ::guessMimeType
      *
      * @uses League\Flysystem\Util\MimeType
-     * @uses Potherca\Flysystem\Github\Api::getFileContents
-     * @uses Potherca\Flysystem\Github\Api::getMetaData
      */
     final public function testApiShouldGuessMimeTypeCorrectlyWhenGivenPathIsDirectory()
     {
@@ -435,12 +520,36 @@ class ApiTest extends \PHPUnit_Framework_TestCase
             'getReference' => self::MOCK_REFERENCE,
         ]);
 
-        $this->prepareMockApi(
-            'trees',
-            $api::API_GIT_DATA,
-            [self::MOCK_VENDOR, self::MOCK_PACKAGE, trim(self::MOCK_FOLDER_PATH, '/'), self::MOCK_REFERENCE],
-            [0 => [$api::KEY_TYPE => $api::MIME_TYPE_DIRECTORY]]
-        );
+        $treesFixture = $this->loadFixture('repos/potherca-bot/test-repository/git/trees/HEAD');
+        $files = array_column($treesFixture['tree'], $api::KEY_PATH);
+
+        $this->addMocksToClient($this->mockClient, [
+            Repo::class => [
+                Commits::class => [
+                    'method' => 'all',
+                    'exactly' => count($files),
+                    'with' => self::callback(function($vendor, $package, $context) use ($files) {
+                        return $vendor === self::MOCK_VENDOR && $package === self::MOCK_PACKAGE && $context['sha'] === null
+                        && preg_match(sprintf('#%s#', implode('|', $files)), $context['path']) === 1;
+                    }),
+                    'willReturn' => $this->loadFixture('repos/potherca-bot/test-repository/commits'),
+                ],
+                Contents::class => [
+                    'method' => 'show',
+                    'exactly' => 1,
+                    'with' => [self::MOCK_VENDOR, self::MOCK_PACKAGE, trim(self::MOCK_FOLDER_PATH, '/'), self::MOCK_REFERENCE],
+                    'willReturn' => $this->loadFixture('repos/potherca-bot/test-repository/contents/a-directory'),
+                ],
+            ],
+            GitData::class => [
+                Trees::class => [
+                    'method' => 'show',
+                    'exactly' => 1,
+                    'with' => [self::MOCK_VENDOR, self::MOCK_PACKAGE, self::MOCK_REFERENCE, $api::RECURSIVE],
+                    'willReturn' => $treesFixture,
+                ],
+            ],
+        ]);
 
         $actual = $api->guessMimeType(self::MOCK_FOLDER_PATH);
 
@@ -528,6 +637,7 @@ class ApiTest extends \PHPUnit_Framework_TestCase
 
                 $mockParentApi->expects(self::exactly(1))
                     ->method($childApiName)
+                    ->with()
                     ->willReturn($mockChildApi)
                 ;
             }
@@ -644,46 +754,6 @@ class ApiTest extends \PHPUnit_Framework_TestCase
         }
     }
 
-    /**
-     * @param bool $truncated
-     * @param Api $api
-     * @return array
-     */
-    private function getMockApiTreeResponse($truncated, Api $api)
-    {
-        return [
-            $api::KEY_TREE => [
-                [
-                    'path' => self::MOCK_FILE_PATH,
-                    'mode' => '100644',
-                    'type' => 'tree',
-                    'size' => 57,
-                ],
-                [
-                    'path' => self::MOCK_FILE_PATH . 'Foo',
-                    'basename' => self::MOCK_FILE_PATH . 'Foo',
-                    'mode' => '100644',
-                    'type' => 'blob',
-                    'size' => 57,
-                ],
-                [
-                    'path' => self::MOCK_FILE_PATH . '/Bar',
-                    'name' => self::MOCK_FILE_PATH . '/Bar',
-                    'mode' => '100644',
-                    'type' => 'blob',
-                    'size' => 57,
-                ],
-                [
-                    'path' => 'some/other/file',
-                    'mode' => '100644',
-                    'type' => 'blob',
-                    'size' => 747,
-                ],
-            ],
-            'truncated' => $truncated,
-        ];
-    }
-
     private function prepareFixturesForTimeStamp()
     {
         date_default_timezone_set('UTC');
@@ -726,271 +796,164 @@ class ApiTest extends \PHPUnit_Framework_TestCase
     final public  function provideExpectedMetadata()
     {
         return [
-            'Filepath, not recursive, not truncated' => [[
+            'FilePath' => [[
+                'count' => 0,
                 'path' => self::MOCK_FILE_PATH,
                 'expected' => [
-                    [
-                        'path' => '/path/to/mock/file',
-                        'mode' => '100644',
+                    'path' => 'a-directory/another-file.js',
+                    'mode' => '100755',
                         'type' => 'dir',
-                        'size' => 57,
-                        'name' => '/path/to/mock/file',
-                        'contents' => false,
-                        'stream' => false,
-                        'timestamp' => null,
-                        'visibility' => 'public'
-                    ],
-                    [
-                        'path' => '/path/to/mock/fileFoo',
-                        'basename' => '/path/to/mock/fileFoo',
-                        'mode' => '100644',
-                        'type' => 'file',
-                        'size' => 57,
-                        'name' => '/path/to/mock/fileFoo',
-                        'contents' => false,
-                        'stream' => false,
-                        'timestamp' => null,
-                        'visibility' => 'public'
-                    ],
-                    [
-                        'path' => '/path/to/mock/file/Bar',
-                        'name' => '/path/to/mock/file/Bar',
-                        'mode' => '100644',
-                        'type' => 'file',
-                        'size' => 57,
+                    'sha' => 'f542363e1b45aa7a33e5e731678dee18f7a1e729',
+                    'size' => 52,
+                    'url' => 'https://api.github.com/repos/mockVendor/mockPackage/contents/a-directory/another-file.js?ref=mockReference',
+                    'name' => 'a-directory/another-file.js',
                         'visibility' => 'public',
                         'contents' => false,
                         'stream' => false,
-                        'timestamp' => null
+                    'timestamp' => 1450252770,
+                    'html_url' => 'https://github.com/mockVendor/mockPackage/blob/mockReference/a-directory/another-file.js',
+                    '_links' => [
+                        'self' => 'https://api.github.com/repos/mockVendor/mockPackage/contents/a-directory/another-file.js?ref=mockReference',
+                        'html' => 'https://github.com/mockVendor/mockPackage/blob/mockReference/a-directory/another-file.js',
                     ],
                 ],
-                'recursive' => false,
-                'truncated' => false,
             ]],
-            'Filepath, recursive, not truncated' => [[
-                'path' => self::MOCK_FILE_PATH,
+            'DirectoryPath' => [[
+                'count' => 2,
+                'path' => self::MOCK_FOLDER_PATH,
                 'expected' => [
-                    [
-                        'path' => '/path/to/mock/file',
-                        'mode' => '100644',
+                    'path' => 'a-directory',
+                    'mode' => '040000',
                         'type' => 'dir',
-                        'size' => 57,
-                        'name' => '/path/to/mock/file',
-                        'contents' => false,
-                        'stream' => false,
-                        'timestamp' => null,
-                        'visibility' => 'public'
-                    ],
-                    [
-                        'path' => '/path/to/mock/fileFoo',
-                        'basename' => '/path/to/mock/fileFoo',
-                        'mode' => '100644',
-                        'type' => 'file',
-                        'size' => 57,
-                        'name' => '/path/to/mock/fileFoo',
-                        'contents' => false,
-                        'stream' => false,
-                        'timestamp' => null,
-                        'visibility' => 'public'
-                    ],
-                    [
-                        'path' => '/path/to/mock/file/Bar',
-                        'mode' => '100644',
-                        'type' => 'file',
-                        'size' => 57,
-                        'name' => '/path/to/mock/file/Bar',
-                        'contents' => false,
-                        'stream' => false,
-                        'timestamp' => null,
-                        'visibility' => 'public'
-                    ]
-                ],
-                'recursive' => true,
-                'truncated' => false,
-            ]],
-            'Filepath, not recursive, truncated' => [[
-                'path' => self::MOCK_FILE_PATH,
-                'expected' => [
-                    [
-                        'path' => '/path/to/mock/file',
-                        'mode' => '100644',
-                        'type' => 'dir',
-                        'size' => 57,
-                        'name' => '/path/to/mock/file',
-                        'contents' => false,
-                        'stream' => false,
-                        'timestamp' => null,
-                        'visibility' => 'public'
-                    ],
-                    [
-                        'path' => '/path/to/mock/fileFoo',
-                        'basename' => '/path/to/mock/fileFoo',
-                        'mode' => '100644',
-                        'type' => 'file',
-                        'size' => 57,
-                        'name' => '/path/to/mock/fileFoo',
-                        'contents' => false,
-                        'stream' => false,
-                        'timestamp' => null,
-                        'visibility' => 'public'
-                    ],
-                    [
-                        'path' => '/path/to/mock/file/Bar',
-                        'name' => '/path/to/mock/file/Bar',
-                        'mode' => '100644',
-                        'type' => 'file',
-                        'size' => 57,
+                    'sha' => '30b7e362894eecb159ce0ba2921a8363cd297213',
+                    'url' => 'https://api.github.com/repos/mockVendor/mockPackage/contents/a-directory?ref=mockReference',
+                    'name' => 'a-directory',
                         'visibility' => 'public',
                         'contents' => false,
                         'stream' => false,
-                        'timestamp' => null
+                    'timestamp' => 1450252770,
+                    'html_url' => 'https://github.com/mockVendor/mockPackage/blob/mockReference/a-directory',
+                    '_links' => [
+                        'self' => 'https://api.github.com/repos/mockVendor/mockPackage/contents/a-directory?ref=mockReference',
+                        'html' => 'https://github.com/mockVendor/mockPackage/blob/mockReference/a-directory',
                     ],
                 ],
+            ]],
+        ];
+    }
+
+    final public  function provideDirectoryContents()
+    {
+        $subDirectoryContent = [
+            [
+                'path' => 'a-directory/another-file.js',
+                'mode' => '100755',
+                'type' => 'file',
+                'size' => 52,
+                'name' => 'a-directory/another-file.js',
+                'contents' => false,
+                'stream' => false,
+                'timestamp' => 1450252770,
+                'visibility' => 'public',
+                'sha' => 'f542363e1b45aa7a33e5e731678dee18f7a1e729',
+                'url' => 'https://api.github.com/repos/potherca-bot/test-repository/git/blobs/f542363e1b45aa7a33e5e731678dee18f7a1e729',
+            ],
+            [
+                'path' => 'a-directory/readme.txt',
+                'mode' => '100755',
+                'type' => 'file',
+                'size' => 31,
+                'name' => 'a-directory/readme.txt',
+                'contents' => false,
+                'stream' => false,
+                'timestamp' => 1450252770,
+                'visibility' => 'public',
+                'sha' => '27f8ec8435cb07992ecf18f9d5494ffc14948368',
+                'url' => 'https://api.github.com/repos/potherca-bot/test-repository/git/blobs/27f8ec8435cb07992ecf18f9d5494ffc14948368',
+            ],
+        ];
+
+        $subDirectory = [
+            'path' => 'a-directory',
+            'mode' => '040000',
+            'type' => 'dir',
+            'name' => 'a-directory',
+            'contents' => false,
+            'stream' => false,
+            'timestamp' => 1450252770,
+            'visibility' => 'public',
+            'sha' => '30b7e362894eecb159ce0ba2921a8363cd297213',
+            'url' => 'https://api.github.com/repos/potherca-bot/test-repository/git/trees/30b7e362894eecb159ce0ba2921a8363cd297213',
+        ];
+
+        $nonRecursiveRepositoryContent = [
+            [
+                'path' => 'README',
+                'mode' => '100755',
+                'type' => 'file',
+                'size' => 58,
+                'name' => 'README',
+                'contents' => false,
+                'stream' => false,
+                'timestamp' => 1450252770,
+                'visibility' => 'public',
+                'sha' => '1ff3a296caf2d27828dd8c40673c88dbf99d4b3a',
+                'url' => 'https://api.github.com/repos/potherca-bot/test-repository/git/blobs/1ff3a296caf2d27828dd8c40673c88dbf99d4b3a',
+            ],
+            $subDirectory,
+            [
+                'path' => 'a-file.php',
+                'mode' => '100755',
+                'type' => 'file',
+                'sha' => 'c6e6cd91e3ae40ab74883720a0d6cfb2af89e4b1',
+                'size' => 117,
+                'url' => 'https://api.github.com/repos/potherca-bot/test-repository/git/blobs/c6e6cd91e3ae40ab74883720a0d6cfb2af89e4b1',
+                'name' => 'a-file.php',
+                'visibility' => 'public',
+                'contents' => false,
+                'stream' => false,
+                'timestamp' => 1450252770,
+            ],
+        ];
+
+        $recursiveRepositoryContent = array_merge($nonRecursiveRepositoryContent, $subDirectoryContent);
+
+        return [
+            // @TODO: Add Directory path?
+            'Directorypath, not recursive, not truncated' => [[
+                //@TODO: Add sub-sub-directory so non-recursive directory contents can be properly tested
+                'path' => self::MOCK_FOLDER_PATH,
+                'expected' => array_merge([$subDirectory], $subDirectoryContent),
                 'recursive' => false,
-                'truncated' => true,
+                'truncated' => false,
             ]],
-            'Filepath, recursive, truncated' => [[
-                'path' => self::MOCK_FILE_PATH,
-                'expected' => [
-                    [
-                        'path' => '/path/to/mock/file',
-                        'mode' => '100644',
-                        'type' => 'dir',
-                        'size' => 57,
-                        'name' => '/path/to/mock/file',
-                        'contents' => false,
-                        'stream' => false,
-                        'timestamp' => null,
-                        'visibility' => 'public'
-                    ],
-                    [
-                        'path' => '/path/to/mock/fileFoo',
-                        'basename' => '/path/to/mock/fileFoo',
-                        'mode' => '100644',
-                        'type' => 'file',
-                        'size' => 57,
-                        'name' => '/path/to/mock/fileFoo',
-                        'contents' => false,
-                        'stream' => false,
-                        'timestamp' => null,
-                        'visibility' => 'public'
-                    ],
-                    [
-                        'path' => '/path/to/mock/file/Bar',
-                        'mode' => '100644',
-                        'type' => 'file',
-                        'size' => 57,
-                        'name' => '/path/to/mock/file/Bar',
-                        'contents' => false,
-                        'stream' => false,
-                        'timestamp' => null,
-                        'visibility' => 'public'
-                    ]
-                ],
-                'recursive' => true,
-                'truncated' => true,
-            ]],
-            'No Filepath, recursive, not truncated' => [[
-                'path' => '',
-                'expected' => [
-                    [
-                        'path' => '/path/to/mock/file',
-                        'mode' => '100644',
-                        'type' => 'dir',
-                        'size' => 57,
-                        'name' => '/path/to/mock/file',
-                        'contents' => false,
-                        'stream' => false,
-                        'timestamp' => null,
-                        'visibility' => 'public'
-                    ],
-                    [
-                        'path' => '/path/to/mock/fileFoo',
-                        'basename' => '/path/to/mock/fileFoo',
-                        'mode' => '100644',
-                        'type' => 'file',
-                        'size' => 57,
-                        'name' => '/path/to/mock/fileFoo',
-                        'contents' => false,
-                        'stream' => false,
-                        'timestamp' => null,
-                        'visibility' => 'public'
-                    ],
-                    [
-                        'path' => '/path/to/mock/file/Bar',
-                        'mode' => '100644',
-                        'type' => 'file',
-                        'size' => 57,
-                        'name' => '/path/to/mock/file/Bar',
-                        'contents' => false,
-                        'stream' => false,
-                        'timestamp' => null,
-                        'visibility' => 'public'
-                    ],
-                    [
-                        'path' => 'some/other/file',
-                        'mode' => '100644',
-                        'type' => 'file',
-                        'size' => 747,
-                        'name' => 'some/other/file',
-                        'contents' => false,
-                        'stream' => false,
-                        'timestamp' => null,
-                        'visibility' => 'public'
-                    ]
-                ],
+            'Directorypath, recursive, not truncated' => [[
+                'path' => self::MOCK_FOLDER_PATH,
+                'expected' => array_merge([$subDirectory], $subDirectoryContent),
                 'recursive' => true,
                 'truncated' => false,
             ]],
-            'No Filepath, recursive, truncated' => [[
+            'No FilePath, not recursive, not truncated' => [[
                 'path' => '',
-                'expected' => [
-                    [
-                        'path' => '/path/to/mock/file',
-                        'mode' => '100644',
-                        'type' => 'dir',
-                        'size' => 57,
-                        'name' => '/path/to/mock/file',
-                        'contents' => false,
-                        'stream' => false,
-                        'timestamp' => null,
-                        'visibility' => 'public'
-                    ],
-                    [
-                        'path' => '/path/to/mock/fileFoo',
-                        'basename' => '/path/to/mock/fileFoo',
-                        'mode' => '100644',
-                        'type' => 'file',
-                        'size' => 57,
-                        'name' => '/path/to/mock/fileFoo',
-                        'contents' => false,
-                        'stream' => false,
-                        'timestamp' => null,
-                        'visibility' => 'public'
-                    ],
-                    [
-                        'path' => '/path/to/mock/file/Bar',
-                        'mode' => '100644',
-                        'type' => 'file',
-                        'size' => 57,
-                        'name' => '/path/to/mock/file/Bar',
-                        'contents' => false,
-                        'stream' => false,
-                        'timestamp' => null,
-                        'visibility' => 'public'
-                    ],
-                    [
-                        'path' => 'some/other/file',
-                        'mode' => '100644',
-                        'type' => 'file',
-                        'size' => 747,
-                        'name' => 'some/other/file',
-                        'contents' => false,
-                        'stream' => false,
-                        'timestamp' => null,
-                        'visibility' => 'public'
-                    ]
-                ],
+                'expected' => $nonRecursiveRepositoryContent,
+                'recursive' => false,
+                'truncated' => false,
+            ]],
+            'No FilePath, not recursive, truncated' => [[
+                'path' => '',
+                'expected' => $nonRecursiveRepositoryContent,
+                'recursive' => false,
+                'truncated' => true,
+            ]],
+            'No FilePath, recursive, not truncated' => [[
+                'path' => '',
+                'expected' => $recursiveRepositoryContent,
+                'recursive' => true,
+                'truncated' => false,
+            ]],
+            'No FilePath, recursive, truncated' => [[
+                'path' => '',
+                'expected' => $recursiveRepositoryContent,
                 'recursive' => true,
                 'truncated' => true,
             ]],

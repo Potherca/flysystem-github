@@ -42,7 +42,7 @@ class Api implements \Potherca\Flysystem\Github\ApiInterface
     const GITHUB_API_URL = 'https://api.github.com';
     const GITHUB_URL = 'https://github.com';
 
-    const MIME_TYPE_DIRECTORY = 'directory';
+    const MIME_TYPE_DIRECTORY = 'directory';    // or application/x-directory
 
     const NOT_RECURSIVE = false;
     const RECURSIVE = true;
@@ -191,15 +191,7 @@ class Api implements \Potherca\Flysystem\Github\ApiInterface
      */
     final public function getLastUpdatedTimestamp($path)
     {
-        $path = $this->normalizePathName($path);
-
-        $commits = $this->commitsForFile($path);
-
-        $updated = array_shift($commits);
-
-        $time = new \DateTime($updated['commit']['committer']['date']);
-
-        return ['timestamp' => $time->getTimestamp()];
+        return $this->filterCommits($path, 'reset');
     }
 
     /**
@@ -211,15 +203,7 @@ class Api implements \Potherca\Flysystem\Github\ApiInterface
      */
     final public function getCreatedTimestamp($path)
     {
-        $path = $this->normalizePathName($path);
-
-        $commits = $this->commitsForFile($path);
-
-        $created = array_pop($commits);
-
-        $time = new \DateTime($created['commit']['committer']['date']);
-
-        return ['timestamp' => $time->getTimestamp()];
+        return $this->filterCommits($path, 'end');
     }
 
     /**
@@ -254,7 +238,7 @@ class Api implements \Potherca\Flysystem\Github\ApiInterface
             if ($this->isMetadataForDirectory($metadata) === true) {
                 $metadata = $this->metadataForDirectory($path);
             }
-    
+
             $this->metadata[$path] = $metadata;
         }
 
@@ -284,7 +268,9 @@ class Api implements \Potherca\Flysystem\Github\ApiInterface
             self::RECURSIVE //@NOTE: To retrieve all needed date the 'recursive' flag should always be 'true'
         );
 
-        $filteredTreeData = $this->filterTreeData($info[self::KEY_TREE], $path, $recursive);
+        $treeData = $this->addTimestamps($info[self::KEY_TREE]);
+
+        $filteredTreeData = $this->filterTreeData($treeData, $path, $recursive);
 
         return $this->normalizeTreeData($filteredTreeData);
     }
@@ -307,7 +293,7 @@ class Api implements \Potherca\Flysystem\Github\ApiInterface
 
         /** @noinspection OffsetOperationsInspection *//* @NOTE: The existence of $meta[self::KEY_TYPE] has been validated by `hasKey`. */
         if ($this->hasKey($meta, self::KEY_TYPE) && $meta[self::KEY_TYPE] === self::KEY_DIRECTORY) {
-            $mimeType = self::MIME_TYPE_DIRECTORY; // or application/x-directory
+            $mimeType = self::MIME_TYPE_DIRECTORY;
         } else {
             $content = $this->getFileContents($path);
             $mimeType = MimeType::detectByContent($content);
@@ -356,13 +342,11 @@ class Api implements \Potherca\Flysystem\Github\ApiInterface
         $metadata = array_filter($tree, function ($entry) use ($path, $recursive, $length) {
             $match = false;
 
-            $entryPath = $entry[self::KEY_PATH];
-
-            if ($path === '' || strpos($entryPath, $path) === 0) {
+            if ($path === '' || strpos($entry[self::KEY_PATH], $path) === 0) {
                 if ($recursive === self::RECURSIVE) {
                     $match = true;
                 } else {
-                    $match = ($path !== '' || strpos($entryPath, '/', $length) === false);
+                    $match = ($path !== '' || strpos($entry[self::KEY_PATH], '/', $length) === false);
                 }
             }
 
@@ -396,8 +380,6 @@ class Api implements \Potherca\Flysystem\Github\ApiInterface
      */
     private function normalizeTreeData($treeData)
     {
-        $normalizedTreeData = [];
-
         if (is_array(current($treeData)) === false) {
             $treeData = [$treeData];
         }
@@ -409,19 +391,9 @@ class Api implements \Potherca\Flysystem\Github\ApiInterface
 
             $this->setDefaultValue($entry, self::KEY_CONTENTS);
             $this->setDefaultValue($entry, self::KEY_STREAM);
-            $this->setDefaultValue($entry, self::KEY_TIMESTAMP);
 
             return $entry;
         }, $treeData);
-
-        /* Add directory timestamp */
-        $normalizedTreeData = array_map(function ($entry) use ($normalizedTreeData) {
-            if ($entry[self::KEY_TYPE] === self::KEY_DIRECTORY) {
-                $directoryTimestamp = $this->getDirectoryTimestamp($normalizedTreeData, $entry[self::KEY_PATH]);
-                    $entry[self::KEY_TIMESTAMP] = $directoryTimestamp;
-            }
-            return $entry;
-        }, $normalizedTreeData);
 
         return $normalizedTreeData;
     }
@@ -435,7 +407,7 @@ class Api implements \Potherca\Flysystem\Github\ApiInterface
      */
     private function commitsForFile($path)
     {
-        if (array_key_exists($path, $this->commits) === false) {
+        if ($this->hasKey($this->commits, $path) === false) {
             $this->commits[$path] = $this->getCommitsApi()->all(
                 $this->settings->getVendor(),
                 $this->settings->getPackage(),
@@ -477,7 +449,10 @@ class Api implements \Potherca\Flysystem\Github\ApiInterface
                 case self::KEY_TREE:
                     $entry[self::KEY_TYPE] = self::KEY_DIRECTORY;
                     break;
+                //@CHECKME: what should the 'default' be? Throw exception for unknown?
             }
+        } else {
+            $entry[self::KEY_TYPE] = false;
         }
     }
 
@@ -561,10 +536,10 @@ class Api implements \Potherca\Flysystem\Github\ApiInterface
         $filteredTreeData = $this->filterTreeData($treeMetadata, $path, self::RECURSIVE);
 
         array_walk($filteredTreeData, function ($entry) use (&$directoryTimestamp, $path) {
-            if ($entry[self::KEY_TYPE] !== self::KEY_DIRECTORY
-                && $entry[self::KEY_TIMESTAMP] !== false
+            if ($entry[self::KEY_TYPE] === self::KEY_FILE
                 && strpos($entry[self::KEY_PATH], $path) === 0
             ) {
+                // @CHECKME: Should the directory Timestamp reflect the `getCreatedTimestamp` or `getLastUpdatedTimestamp`?
                 $timestamp = $this->getCreatedTimestamp($entry[self::KEY_PATH])[self::KEY_TIMESTAMP];
 
                 if ($timestamp > $directoryTimestamp) {
@@ -629,5 +604,45 @@ class Api implements \Potherca\Flysystem\Github\ApiInterface
         );
         
         return $metadata;
+    }
+
+    /**
+     * @param array $treeData
+     *
+     * @return array
+     *
+     * @throws \Github\Exception\InvalidArgumentException
+     */
+    private function addTimestamps(array $treeData)
+    {
+        return array_map(function ($entry) use ($treeData) {
+            if ($entry[self::KEY_TYPE] === self::KEY_DIRECTORY) {
+                $timestamp = $this->getDirectoryTimestamp($treeData, $entry[self::KEY_PATH]);
+            } else {
+                // @CHECKME: Should the Timestamp reflect the `getCreatedTimestamp` or `getLastUpdatedTimestamp`?
+                $timestamp = $this->getCreatedTimestamp($entry[self::KEY_PATH])[self::KEY_TIMESTAMP];
+            }
+            $entry[self::KEY_TIMESTAMP] = $timestamp;
+
+            return $entry;
+        }, $treeData);
+    }
+
+    /**
+     * @param $path
+     * @param $function
+     * @return array
+     */
+    private function filterCommits($path, callable $function)
+    {
+        $path = $this->normalizePathName($path);
+
+        $commits = $this->commitsForFile($path);
+
+        $subject = $function($commits);
+
+        $time = new \DateTime($subject['commit']['committer']['date']);
+
+        return [self::KEY_TIMESTAMP => $time->getTimestamp()];
     }
 }
