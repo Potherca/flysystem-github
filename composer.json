@@ -26,11 +26,11 @@
     },
     "require-dev": {
         "php" : ">=5.5",
-        "josegonzalez/dotenv": "~2.0",
-        "phpunit/phpunit" : "~4.8",
-        "satooshi/php-coveralls": "~0.6",
-        "scrutinizer/ocular": "~1.1",
-        "whatthejeff/nyancat-phpunit-resultprinter": "~1.2"
+        "josegonzalez/dotenv": "2.1.0",
+        "phpunit/phpunit" : "4.8.36",
+        "satooshi/php-coveralls": "0.7.1",
+        "scrutinizer/ocular": "1.5.2",
+        "whatthejeff/nyancat-phpunit-resultprinter": "1.3.0"
     },
     "autoload": {
         "psr-4": {
