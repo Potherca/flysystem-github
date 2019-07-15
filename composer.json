@@ -27,7 +27,7 @@
     "require-dev": {
         "php" : ">=5.5",
         "josegonzalez/dotenv": "3.2.0",
-        "phpunit/phpunit" : "8.2.4",
+        "phpunit/phpunit" : "8.2.5",
         "satooshi/php-coveralls": "2.1.0",
         "scrutinizer/ocular": "1.6.0",
         "whatthejeff/nyancat-phpunit-resultprinter": "2.0.0"
