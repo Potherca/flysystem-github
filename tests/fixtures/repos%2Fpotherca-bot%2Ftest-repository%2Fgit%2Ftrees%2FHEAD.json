@@ -18,22 +18,6 @@
             "url": "https://api.github.com/repos/potherca-bot/test-repository/git/trees/30b7e362894eecb159ce0ba2921a8363cd297213"
         },
         {
-            "path": "a-directory/another-file.js",
-            "mode": "100755",
-            "type": "blob",
-            "sha": "f542363e1b45aa7a33e5e731678dee18f7a1e729",
-            "size": 52,
-            "url": "https://api.github.com/repos/potherca-bot/test-repository/git/blobs/f542363e1b45aa7a33e5e731678dee18f7a1e729"
-        },
-        {
-            "path": "a-directory/readme.txt",
-            "mode": "100755",
-            "type": "blob",
-            "sha": "27f8ec8435cb07992ecf18f9d5494ffc14948368",
-            "size": 31,
-            "url": "https://api.github.com/repos/potherca-bot/test-repository/git/blobs/27f8ec8435cb07992ecf18f9d5494ffc14948368"
-        },
-        {
             "path": "a-file.php",
             "mode": "100755",
             "type": "blob",

@@ -2,9 +2,9 @@
 
 namespace Potherca\Flysystem\Github;
 
+use Github\Api\ApiInterface;
 use Github\Api\GitData;
 use Github\Api\Repo;
-use Github\Api\Repository\Contents;
 use Github\Client;
 use Github\Exception\RuntimeException;
 use League\Flysystem\AdapterInterface;
@@ -13,14 +13,16 @@ use League\Flysystem\Util\MimeType;
 /**
  * Facade class for the Github Api Library
  */
-class Api implements ApiInterface
+class Api implements \Potherca\Flysystem\Github\ApiInterface
 {
     ////////////////////////////// CLASS PROPERTIES \\\\\\\\\\\\\\\\\\\\\\\\\\\\
     const ERROR_NO_NAME = 'Could not set name for entry';
     const ERROR_NOT_FOUND = 'Not Found';
 
-    const API_GIT_DATA = 'git';
-    const API_REPO = 'repo';
+    const API_GIT_DATA = 'gitData';
+    const API_REPOSITORY = 'repo';
+    const API_REPOSITORY_COMMITS = 'commits';
+    const API_REPOSITORY_CONTENTS = 'contents';
 
     const KEY_BLOB = 'blob';
     const KEY_DIRECTORY = 'dir';
@@ -36,20 +38,27 @@ class Api implements ApiInterface
     const KEY_TREE = 'tree';
     const KEY_TYPE = 'type';
     const KEY_VISIBILITY = 'visibility';
-    
+
     const GITHUB_API_URL = 'https://api.github.com';
     const GITHUB_URL = 'https://github.com';
 
-    const MIME_TYPE_DIRECTORY = 'directory';
+    const MIME_TYPE_DIRECTORY = 'directory';    // or application/x-directory
 
+    const NOT_RECURSIVE = false;
+    const RECURSIVE = true;
+
+    /** @var ApiInterface[] */
+    private $apiCollection = [];
     /** @var Client */
     private $client;
-    /** @var Contents */
-    private $contents;
-    /** @var SettingsInterface */
-    private $settings;
+    /** @var array */
+    private $commits = [];
     /** @var bool */
     private $isAuthenticationAttempted = false;
+    /** @var array */
+    private $metadata = [];
+    /** @var SettingsInterface */
+    private $settings;
 
     //////////////////////////// SETTERS AND GETTERS \\\\\\\\\\\\\\\\\\\\\\\\\\\
     /**
@@ -61,8 +70,46 @@ class Api implements ApiInterface
      */
     private function getApi($name)
     {
-        $this->authenticate();
-        return $this->client->api($name);
+        $this->assureAuthenticated();
+
+        if ($this->hasKey($this->apiCollection, $name) === false) {
+            $this->apiCollection[$name] = $this->client->api($name);
+        }
+
+        return $this->apiCollection[$name];
+    }
+
+    /**
+     * @param $name
+     * @param $api
+     * @return ApiInterface
+     */
+    private function getApiFrom($name, $api)
+    {
+        if ($this->hasKey($this->apiCollection, $name) === false) {
+            $this->apiCollection[$name] = $api->{$name}();
+        }
+        return $this->apiCollection[$name];
+    }
+
+    /**
+     * @return \Github\Api\Repository\Commits
+     *
+     * @throws \Github\Exception\InvalidArgumentException
+     */
+    private function getCommitsApi()
+    {
+        return $this->getApiFrom(self::API_REPOSITORY_COMMITS, $this->getRepositoryApi());
+    }
+
+    /**
+     * @return \Github\Api\Repository\Contents
+     *
+     * @throws \Github\Exception\InvalidArgumentException
+     */
+    private function getContentApi()
+    {
+        return $this->getApiFrom(self::API_REPOSITORY_CONTENTS, $this->getRepositoryApi());
     }
 
     /**
@@ -82,20 +129,7 @@ class Api implements ApiInterface
      */
     private function getRepositoryApi()
     {
-        return $this->getApi(self::API_REPO);
-    }
-
-    /**
-     * @return \Github\Api\Repository\Contents
-     *
-     * @throws \Github\Exception\InvalidArgumentException
-     */
-    private function getRepositoryContent()
-    {
-        if ($this->contents === null) {
-            $this->contents = $this->getRepositoryApi()->contents();
-        }
-        return $this->contents;
+        return $this->getApi(self::API_REPOSITORY);
     }
 
     //////////////////////////////// PUBLIC API \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
@@ -118,7 +152,9 @@ class Api implements ApiInterface
      */
     final public function exists($path)
     {
-        return $this->getRepositoryContent()->exists(
+        $path = $this->normalizePathName($path);
+
+        return $this->getContentApi()->exists(
             $this->settings->getVendor(),
             $this->settings->getPackage(),
             $path,
@@ -136,7 +172,9 @@ class Api implements ApiInterface
      */
     final public function getFileContents($path)
     {
-        return $this->getRepositoryContent()->download(
+        $path = $this->normalizePathName($path);
+
+        return $this->getContentApi()->download(
             $this->settings->getVendor(),
             $this->settings->getPackage(),
             $path,
@@ -153,13 +191,7 @@ class Api implements ApiInterface
      */
     final public function getLastUpdatedTimestamp($path)
     {
-        $commits = $this->commitsForFile($path);
-
-        $updated = array_shift($commits);
-
-        $time = new \DateTime($updated['commit']['committer']['date']);
-
-        return ['timestamp' => $time->getTimestamp()];
+        return $this->filterCommits($path, 'reset');
     }
 
     /**
@@ -171,13 +203,7 @@ class Api implements ApiInterface
      */
     final public function getCreatedTimestamp($path)
     {
-        $commits = $this->commitsForFile($path);
-
-        $created = array_pop($commits);
-
-        $time = new \DateTime($created['commit']['committer']['date']);
-
-        return ['timestamp' => $time->getTimestamp()];
+        return $this->filterCommits($path, 'end');
     }
 
     /**
@@ -187,56 +213,36 @@ class Api implements ApiInterface
      *
      * @throws \Github\Exception\InvalidArgumentException
      * @throws \Github\Exception\RuntimeException
+     * @throws \League\Flysystem\NotSupportedException
      */
     final public function getMetaData($path)
     {
-        try {
-            $metadata = $this->getRepositoryContent()->show(
-                $this->settings->getVendor(),
-                $this->settings->getPackage(),
-                $path,
-                $this->settings->getReference()
-            );
-        } catch (RuntimeException $exception) {
-            if ($exception->getMessage() === self::ERROR_NOT_FOUND) {
-                $metadata = false;
-            } else {
-                throw $exception;
+        $path = $this->normalizePathName($path);
+
+        if ($this->hasKey($this->metadata, $path) === false) {
+            try {
+                $metadata = $this->getContentApi()->show(
+                    $this->settings->getVendor(),
+                    $this->settings->getPackage(),
+                    $path,
+                    $this->settings->getReference()
+                );
+            } catch (RuntimeException $exception) {
+                if ($exception->getMessage() === self::ERROR_NOT_FOUND) {
+                    $metadata = false;
+                } else {
+                    throw $exception;
+                }
             }
+    
+            if ($this->isMetadataForDirectory($metadata) === true) {
+                $metadata = $this->metadataForDirectory($path);
+            }
+
+            $this->metadata[$path] = $metadata;
         }
 
-        if (is_array($metadata) === true && $this->isMetadataForDirectory($metadata) === true) {
-            /** @var $metadata array */
-            $project = sprintf('%s/%s', $this->settings->getVendor(), $this->settings->getPackage());
-            $reference = $this->settings->getReference();
-
-            $url = sprintf(
-                '%s/repos/%s/contents/%s?ref=%s',
-                self::GITHUB_API_URL,
-                $project,
-                trim($path, '/'),
-                $reference
-            );
-            $htmlUrl = sprintf(
-                '%s/%s/blob/%s/%s',
-                self::GITHUB_URL,
-                $project,
-                $reference,
-                trim($path, '/')
-            );
-
-            $metadata = [
-                self::KEY_TYPE => self::KEY_DIRECTORY,
-                'url' => $url,
-                'html_url' => $htmlUrl,
-                '_links' => [
-                    'self' => $url,
-                    'html' => $htmlUrl
-                ]
-            ];
-        }
-
-        return $metadata;
+        return $this->metadata[$path];
     }
 
     /**
@@ -244,10 +250,13 @@ class Api implements ApiInterface
      * @param bool $recursive
      *
      * @return array
+     *
      * @throws \Github\Exception\InvalidArgumentException
      */
-    final public function getTreeMetadata($path, $recursive)
+    final public function getDirectoryContents($path, $recursive)
     {
+        $path = $this->normalizePathName($path);
+
         // If $info['truncated'] is `true`, the number of items in the tree array
         // exceeded the github maximum limit. If we need to fetch more items,
         // multiple calls will be needed
@@ -256,36 +265,14 @@ class Api implements ApiInterface
             $this->settings->getVendor(),
             $this->settings->getPackage(),
             $this->settings->getReference(),
-            true //@NOTE: To retrieve all needed date the 'recursive' flag should always be 'true'
+            self::RECURSIVE //@NOTE: To retrieve all needed date the 'recursive' flag should always be 'true'
         );
 
-        $path = rtrim($path, '/') . '/';
+        $treeData = $this->addTimestamps($info[self::KEY_TREE]);
 
-        $treeMetadata = $this->extractMetaDataFromTreeInfo($info[self::KEY_TREE], $path, $recursive);
+        $filteredTreeData = $this->filterTreeData($treeData, $path, $recursive);
 
-        $normalizeTreeMetadata = $this->normalizeTreeMetadata($treeMetadata);
-
-        $directoryTimestamp = 0000000000;
-
-        array_walk($normalizeTreeMetadata, function (&$entry) use (&$directoryTimestamp) {
-            if ($this->hasKey($entry, self::KEY_TIMESTAMP) === false
-                || $entry[self::KEY_TIMESTAMP] === false
-            ) {
-                $timestamp = $this->getCreatedTimestamp($entry[self::KEY_PATH])['timestamp'];
-
-                $entry[self::KEY_TIMESTAMP] = $timestamp;
-
-                if ($timestamp > $directoryTimestamp) {
-                    $directoryTimestamp = $timestamp;
-                }
-            }
-        });
-
-        /* @FIXME: It might be wise to use a filter to find the right entry instead of always using the first entry in the array. */
-
-        $normalizeTreeMetadata[0]['timestamp'] = $directoryTimestamp;
-
-        return $normalizeTreeMetadata;
+        return $this->normalizeTreeData($filteredTreeData);
     }
 
     /**
@@ -299,11 +286,14 @@ class Api implements ApiInterface
      */
     final public function guessMimeType($path)
     {
+        $path = $this->normalizePathName($path);
+
         //@NOTE: The github API does not return a MIME type, so we have to guess :-(
         $meta = $this->getMetaData($path);
 
+        /** @noinspection OffsetOperationsInspection *//* @NOTE: The existence of $meta[self::KEY_TYPE] has been validated by `hasKey`. */
         if ($this->hasKey($meta, self::KEY_TYPE) && $meta[self::KEY_TYPE] === self::KEY_DIRECTORY) {
-            $mimeType = self::MIME_TYPE_DIRECTORY; // or application/x-directory
+            $mimeType = self::MIME_TYPE_DIRECTORY;
         } else {
             $content = $this->getFileContents($path);
             $mimeType = MimeType::detectByContent($content);
@@ -317,12 +307,12 @@ class Api implements ApiInterface
      *
      * @throws \Github\Exception\InvalidArgumentException If no authentication method was given
      */
-    private function authenticate()
+    private function assureAuthenticated()
     {
         if ($this->isAuthenticationAttempted === false) {
             $credentials = $this->settings->getCredentials();
 
-            if (empty($credentials) === false) {
+            if (count($credentials) !== 0) {
                 $credentials = array_replace(
                     [null, null, null],
                     $credentials
@@ -345,21 +335,18 @@ class Api implements ApiInterface
      *
      * @return array
      */
-    private function extractMetaDataFromTreeInfo(array $tree, $path, $recursive)
+    private function filterTreeData(array $tree, $path, $recursive)
     {
-        $matchPath = substr($path, 0, -1);
-        $length = abs(strlen($matchPath) - 1);
+        $length = strlen($path);
 
-        $metadata = array_filter($tree, function ($entry) use ($matchPath, $recursive, $length) {
+        $metadata = array_filter($tree, function ($entry) use ($path, $recursive, $length) {
             $match = false;
 
-            $entryPath = $entry[self::KEY_PATH];
-
-            if ($matchPath === '' || strpos($entryPath, $matchPath) === 0) {
-                if ($recursive === true) {
+            if ($path === '' || strpos($entry[self::KEY_PATH], $path) === 0) {
+                if ($recursive === self::RECURSIVE) {
                     $match = true;
                 } else {
-                    $match = ($matchPath !== '' || strpos($entryPath, '/', $length) === false);
+                    $match = ($path !== '' || strpos($entry[self::KEY_PATH], '/', $length) === false);
                 }
             }
 
@@ -385,32 +372,30 @@ class Api implements ApiInterface
     }
 
     /**
-     * @param array $metadata
+     * @param array $treeData
      *
      * @return array
+     *
+     * @throws \Github\Exception\InvalidArgumentException
      */
-    private function normalizeTreeMetadata($metadata)
+    private function normalizeTreeData($treeData)
     {
-        $result = [];
-
-        if (is_array(current($metadata)) === false) {
-            $metadata = [$metadata];
+        if (is_array(current($treeData)) === false) {
+            $treeData = [$treeData];
         }
 
-        foreach ($metadata as $entry) {
+        $normalizedTreeData = array_map(function ($entry) {
             $this->setEntryName($entry);
             $this->setEntryType($entry);
             $this->setEntryVisibility($entry);
 
             $this->setDefaultValue($entry, self::KEY_CONTENTS);
             $this->setDefaultValue($entry, self::KEY_STREAM);
-            $this->setDefaultValue($entry, self::KEY_TIMESTAMP);
 
+            return $entry;
+        }, $treeData);
 
-            $result[] = $entry;
-        }
-
-        return $result;
+        return $normalizedTreeData;
     }
 
     /**
@@ -422,14 +407,18 @@ class Api implements ApiInterface
      */
     private function commitsForFile($path)
     {
-        return $this->getRepositoryApi()->commits()->all(
-            $this->settings->getVendor(),
-            $this->settings->getPackage(),
-            array(
-                'sha' => $this->settings->getBranch(),
-                'path' => $path
-            )
-        );
+        if ($this->hasKey($this->commits, $path) === false) {
+            $this->commits[$path] = $this->getCommitsApi()->all(
+                $this->settings->getVendor(),
+                $this->settings->getPackage(),
+                array(
+                    'sha' => $this->settings->getBranch(),
+                    'path' => $path
+                )
+            );
+        }
+
+        return $this->commits[$path];
     }
 
     /**
@@ -460,7 +449,10 @@ class Api implements ApiInterface
                 case self::KEY_TREE:
                     $entry[self::KEY_TYPE] = self::KEY_DIRECTORY;
                     break;
+                //@CHECKME: what should the 'default' be? Throw exception for unknown?
             }
+        } else {
+            $entry[self::KEY_TYPE] = false;
         }
     }
 
@@ -501,10 +493,12 @@ class Api implements ApiInterface
     {
         $isDirectory = false;
 
-        $keys = array_keys($metadata);
+        if (is_array($metadata) === true) {
+            $keys = array_keys($metadata);
 
-        if ($keys[0] === 0) {
-            $isDirectory = true;
+            if ($keys[0] === 0) {
+                $isDirectory = true;
+            }
         }
 
         return $isDirectory;
@@ -525,5 +519,130 @@ class Api implements ApiInterface
         }
 
         return $keyExists;
+    }
+
+    /**
+     * @param array $treeMetadata
+     * @param $path
+     *
+     * @return int
+     *
+     * @throws \Github\Exception\InvalidArgumentException
+     */
+    private function getDirectoryTimestamp(array $treeMetadata, $path)
+    {
+        $directoryTimestamp = 0000000000;
+
+        $filteredTreeData = $this->filterTreeData($treeMetadata, $path, self::RECURSIVE);
+
+        array_walk($filteredTreeData, function ($entry) use (&$directoryTimestamp, $path) {
+            if ($entry[self::KEY_TYPE] === self::KEY_FILE
+                && strpos($entry[self::KEY_PATH], $path) === 0
+            ) {
+                // @CHECKME: Should the directory Timestamp reflect the `getCreatedTimestamp` or `getLastUpdatedTimestamp`?
+                $timestamp = $this->getCreatedTimestamp($entry[self::KEY_PATH])[self::KEY_TIMESTAMP];
+
+                if ($timestamp > $directoryTimestamp) {
+                    $directoryTimestamp = $timestamp;
+                }
+            }
+        });
+
+        return $directoryTimestamp;
+    }
+
+    private function normalizePathName($path)
+    {
+        return trim($path, '/');
+    }
+
+    /**
+     * @param $path
+     * @return array
+     * @throws \League\Flysystem\NotSupportedException
+     * @throws \Github\Exception\RuntimeException
+     *
+     * @throws \Github\Exception\InvalidArgumentException
+     */
+    private function metadataForDirectory($path)
+    {
+        $reference = $this->settings->getReference();
+        $project = sprintf('%s/%s', $this->settings->getVendor(), $this->settings->getPackage());
+
+        $url = sprintf(
+            '%s/repos/%s/contents/%s?ref=%s',
+            self::GITHUB_API_URL,
+            $project,
+            $path,
+            $reference
+        );
+        $htmlUrl = sprintf(
+            '%s/%s/blob/%s/%s',
+            self::GITHUB_URL,
+            $project,
+            $reference,
+            $path
+        );
+
+        $directoryContents =  $this->getDirectoryContents($path, self::RECURSIVE);
+
+        $directoryMetadata = array_filter($directoryContents, function ($entry) use ($path) {
+            return $entry[self::KEY_PATH] === $path;
+        });
+
+        $metadata = array_merge(
+            $directoryMetadata[0],
+            [
+                self::KEY_TYPE => self::KEY_DIRECTORY,
+                'url' => $url,
+                'html_url' => $htmlUrl,
+                '_links' => [
+                    'self' => $url,
+                    'html' => $htmlUrl
+                ]
+            ]
+        );
+        
+        return $metadata;
+    }
+
+    /**
+     * @param array $treeData
+     *
+     * @return array
+     *
+     * @throws \Github\Exception\InvalidArgumentException
+     */
+    private function addTimestamps(array $treeData)
+    {
+        return array_map(function ($entry) use ($treeData) {
+            if ($entry[self::KEY_TYPE] === self::KEY_DIRECTORY) {
+                $timestamp = $this->getDirectoryTimestamp($treeData, $entry[self::KEY_PATH]);
+            } else {
+                // @CHECKME: Should the Timestamp reflect the `getCreatedTimestamp` or `getLastUpdatedTimestamp`?
+                $timestamp = $this->getCreatedTimestamp($entry[self::KEY_PATH])[self::KEY_TIMESTAMP];
+            }
+            $entry[self::KEY_TIMESTAMP] = $timestamp;
+
+            return $entry;
+        }, $treeData);
+    }
+
+    /**
+     * @param $path
+     * @param $function
+     * @return array
+     */
+    private function filterCommits($path, callable $function)
+    {
+        $path = $this->normalizePathName($path);
+
+        $commits = $this->commitsForFile($path);
+
+        $subject = $function($commits);
+
+        $time = new \DateTime($subject['commit']['committer']['date']);
+
+        return [self::KEY_TIMESTAMP => $time->getTimestamp()];
     }
 }
