@@ -23,7 +23,7 @@
     verbose="true"
 >
     <testsuites>
-        <testsuite name="Flysystem Github Adapter - Unit Tests">
+        <testsuite name="Flysystem GitHub Adapter - Unit Tests">
             <directory>tests/unit-tests</directory>
         </testsuite>
     </testsuites>
