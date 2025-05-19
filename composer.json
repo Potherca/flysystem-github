@@ -29,8 +29,7 @@
         "josegonzalez/dotenv": "~2.0",
         "phpunit/phpunit" : "~4.8",
         "satooshi/php-coveralls": "~0.6",
-        "scrutinizer/ocular": "~1.1",
-        "whatthejeff/nyancat-phpunit-resultprinter": "~1.2"
+        "scrutinizer/ocular": "~1.1"
     },
     "autoload": {
         "psr-4": {
